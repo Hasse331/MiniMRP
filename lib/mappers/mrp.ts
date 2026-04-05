@@ -12,6 +12,7 @@ export interface MrpRow {
   quantityPerProduct: number;
   buildQuantity: number;
   safetyStock: number;
+  leadTime: number | null;
   availableInventory: number;
   unitPrice: number | null;
   grossRequirement: number;
@@ -85,6 +86,7 @@ export function buildMrpRows(components: VersionComponent[], buildQuantity: numb
       quantityPerProduct: row.quantity,
       buildQuantity,
       safetyStock,
+      leadTime: row.lead_time ?? null,
       availableInventory,
       unitPrice,
       grossRequirement,
@@ -100,6 +102,10 @@ export function summarizeMrpRows(rows: MrpRow[]) {
     (summary, row) => ({
       quantityPerProduct: summary.quantityPerProduct + row.quantityPerProduct,
       safetyStock: summary.safetyStock + row.safetyStock,
+      maxLeadTime:
+        row.leadTime === null
+          ? summary.maxLeadTime
+          : Math.max(summary.maxLeadTime ?? 0, row.leadTime),
       availableInventory: summary.availableInventory + row.availableInventory,
       grossRequirement: summary.grossRequirement + row.grossRequirement,
       netRequirement: summary.netRequirement + row.netRequirement,
@@ -109,6 +115,7 @@ export function summarizeMrpRows(rows: MrpRow[]) {
     {
       quantityPerProduct: 0,
       safetyStock: 0,
+      maxLeadTime: null as number | null,
       availableInventory: 0,
       grossRequirement: 0,
       netRequirement: 0,
@@ -116,4 +123,37 @@ export function summarizeMrpRows(rows: MrpRow[]) {
       netCost: 0
     }
   );
+}
+
+export function buildPurchasingBuckets<T extends {
+  id: string;
+  name: string;
+  category: string;
+  producer: string;
+  value: string | null;
+  safety_stock: number;
+  quantity_available: number;
+  purchase_price: number | null;
+  lead_time: number | null;
+}>(items: T[]) {
+  const shortages = items
+    .filter((item) => item.quantity_available < item.safety_stock)
+    .map((item) => ({
+      ...item,
+      recommended_order_quantity: Math.max(item.safety_stock - item.quantity_available, 0)
+    }))
+    .sort((left, right) => left.quantity_available - right.quantity_available);
+
+  const nearSafety = items
+    .filter(
+      (item) =>
+        item.quantity_available <= item.safety_stock + 10
+    )
+    .map((item) => ({
+      ...item,
+      recommended_order_quantity: 0
+    }))
+    .sort((left, right) => left.quantity_available - right.quantity_available);
+
+  return { shortages, nearSafety };
 }

@@ -86,6 +86,7 @@ export interface VersionDetail extends ProductVersion {
     component: ComponentMaster;
     references: string[];
     quantity: number;
+    lead_time: number | null;
     inventory: InventoryItem | null;
   }>;
 }
@@ -110,4 +111,11 @@ export interface ComponentDetail extends ComponentMaster {
     version: ProductVersion | null;
     product: Product | null;
   }>;
+}
+
+export interface PurchasingItem extends ComponentMaster {
+  quantity_available: number;
+  purchase_price: number | null;
+  lead_time: number | null;
+  recommended_order_quantity: number;
 }

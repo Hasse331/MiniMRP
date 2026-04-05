@@ -8,6 +8,7 @@ const navigation = [
   { href: "/products", label: "Products" },
   { href: "/components", label: "Components" },
   { href: "/inventory", label: "Inventory" },
+  { href: "/purchasing", label: "Purchasing" },
   { href: "/history", label: "History" }
 ];
 

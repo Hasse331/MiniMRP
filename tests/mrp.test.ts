@@ -21,6 +21,7 @@ test("buildMrpRows calculates quantities and costs", () => {
         },
         references: ["R1", "R2"],
         quantity: 2,
+        lead_time: null,
         inventory: {
           id: "inv-1",
           component_id: "1",
@@ -51,6 +52,7 @@ test("calculateVersionUnitCost sums one product cost", () => {
         },
         references: ["C1", "C2", "C3"],
         quantity: 3,
+        lead_time: null,
       inventory: {
         id: "inv-1",
         component_id: "1",
@@ -79,6 +81,7 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       quantityPerProduct: 2,
       buildQuantity: 5,
       safetyStock: 25,
+      leadTime: 7,
       availableInventory: 3,
       unitPrice: 1.5,
       grossRequirement: 10,
@@ -96,6 +99,7 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       quantityPerProduct: 1,
       buildQuantity: 5,
       safetyStock: 10,
+      leadTime: 14,
       availableInventory: 6,
       unitPrice: 2,
       grossRequirement: 5,
@@ -107,9 +111,85 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
 
   assert.equal(summary.quantityPerProduct, 3);
   assert.equal(summary.safetyStock, 35);
+  assert.equal(summary.maxLeadTime, 14);
   assert.equal(summary.availableInventory, 9);
   assert.equal(summary.grossRequirement, 15);
   assert.equal(summary.netRequirement, 41);
   assert.equal(summary.grossCost, 25);
   assert.equal(summary.netCost, 66);
+});
+
+test("buildMrpRows carries lead time through to results", () => {
+  const rows = buildMrpRows(
+    [
+      {
+        component: {
+          id: "1",
+          name: "MCU",
+          category: "IC",
+          producer: "ST",
+          value: "STM32",
+          safety_stock: 5
+        },
+        references: ["U1"],
+        quantity: 1,
+        lead_time: 21,
+        inventory: {
+          id: "inv-1",
+          component_id: "1",
+          quantity_available: 10,
+          purchase_price: 3.2
+        }
+      }
+    ],
+    3
+  );
+
+  assert.equal(rows[0]?.leadTime, 21);
+});
+
+test("buildPurchasingBuckets separates shortages and near-safety components", async () => {
+  const { buildPurchasingBuckets } = await import("../lib/mappers/mrp.ts");
+
+  const result = buildPurchasingBuckets([
+    {
+      id: "1",
+      name: "Low stock IC",
+      category: "IC",
+      producer: "TI",
+      value: "ABC",
+      safety_stock: 20,
+      quantity_available: 8,
+      purchase_price: 1.5,
+      lead_time: 14
+    },
+    {
+      id: "2",
+      name: "Near stock cap",
+      category: "Capacitor",
+      producer: "Murata",
+      value: "10uF",
+      safety_stock: 20,
+      quantity_available: 26,
+      purchase_price: 0.2,
+      lead_time: 7
+    },
+    {
+      id: "3",
+      name: "Healthy resistor",
+      category: "Resistor",
+      producer: "Yageo",
+      value: "10k",
+      safety_stock: 20,
+      quantity_available: 80,
+      purchase_price: 0.01,
+      lead_time: 5
+    }
+  ]);
+
+  assert.equal(result.shortages.length, 1);
+  assert.equal(result.shortages[0]?.recommended_order_quantity, 12);
+  assert.equal(result.nearSafety.length, 2);
+  assert.equal(result.nearSafety[0]?.id, "1");
+  assert.equal(result.nearSafety[1]?.id, "2");
 });

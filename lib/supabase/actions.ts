@@ -690,3 +690,113 @@ export async function updateDefaultSafetyStockAction(formData: FormData) {
   revalidatePath("/components");
   redirect("/components");
 }
+
+export async function updateComponentSafetyStockAction(formData: FormData) {
+  const supabase = createSupabaseClient();
+  const id = requiredValue(formData.get("id"), "Component id");
+  const safetyStock = Number(requiredValue(formData.get("safety_stock"), "Safety stock"));
+  const previous = await supabase
+    .from("components")
+    .select("id,name,category,producer,value,safety_stock")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (previous.error) {
+    throw new Error(previous.error.message);
+  }
+
+  const result = await supabase
+    .from("components")
+    .update({ safety_stock: safetyStock })
+    .eq("id", id);
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  await recordHistory({
+    entity_type: "component",
+    entity_id: id,
+    action_type: "update_safety_stock",
+    summary: `Updated safety stock for component ${id} to ${safetyStock}`,
+    old_value: stringifyHistoryValue(previous.data),
+    new_value: stringifyHistoryValue(previous.data ? { ...previous.data, safety_stock: safetyStock } : { id, safety_stock: safetyStock })
+  });
+
+  revalidatePath("/components");
+  revalidatePath(`/components/${id}`);
+  revalidatePath("/purchasing");
+  redirect("/purchasing");
+}
+
+export async function consumeVersionInventoryAction(formData: FormData) {
+  const supabase = createSupabaseClient();
+  const versionId = requiredValue(formData.get("version_id"), "Version id");
+  const buildQuantity = Math.max(Number(requiredValue(formData.get("quantity"), "Quantity")), 1);
+
+  const referencesResult = await supabase
+    .from("component_references")
+    .select("component_master_id")
+    .eq("version_id", versionId);
+
+  if (referencesResult.error) {
+    throw new Error(referencesResult.error.message);
+  }
+
+  const grossMap = new Map<string, number>();
+  for (const reference of referencesResult.data ?? []) {
+    grossMap.set(
+      reference.component_master_id,
+      (grossMap.get(reference.component_master_id) ?? 0) + buildQuantity
+    );
+  }
+
+  const componentIds = Array.from(grossMap.keys());
+  if (componentIds.length === 0) {
+    revalidatePath(`/versions/${versionId}`);
+    redirect(`/versions/${versionId}`);
+  }
+
+  const inventoryResult = await supabase
+    .from("inventory")
+    .select("id,component_id,quantity_available,purchase_price")
+    .in("component_id", componentIds);
+
+  if (inventoryResult.error) {
+    throw new Error(inventoryResult.error.message);
+  }
+
+  const previousRows = inventoryResult.data ?? [];
+  for (const row of previousRows) {
+    const gross = grossMap.get(row.component_id) ?? 0;
+    const nextQuantity = Math.max(Number(row.quantity_available) - gross, 0);
+    const updateResult = await supabase
+      .from("inventory")
+      .update({ quantity_available: nextQuantity })
+      .eq("id", row.id);
+
+    if (updateResult.error) {
+      throw new Error(updateResult.error.message);
+    }
+  }
+
+  await recordHistory({
+    entity_type: "version",
+    entity_id: versionId,
+    action_type: "consume_inventory",
+    summary: `Consumed inventory for version ${versionId} using build quantity ${buildQuantity}`,
+    old_value: stringifyHistoryValue(previousRows),
+    new_value: stringifyHistoryValue(
+      previousRows.map((row) => ({
+        ...row,
+        quantity_available: Math.max(Number(row.quantity_available) - (grossMap.get(row.component_id) ?? 0), 0)
+      }))
+    )
+  });
+
+  revalidatePath(`/versions/${versionId}`);
+  revalidatePath("/inventory");
+  revalidatePath("/purchasing");
+  revalidatePath("/history");
+  redirect(`/versions/${versionId}?quantity=${buildQuantity}`);
+}

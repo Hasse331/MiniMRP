@@ -1,4 +1,5 @@
 import { createSupabaseClient } from "./client";
+import { buildPurchasingBuckets } from "@/lib/mappers/mrp";
 import type {
   Attachment,
   AppSettings,
@@ -12,6 +13,7 @@ import type {
   ProductDetail,
   ProductListItem,
   ProductVersion,
+  PurchasingItem,
   Seller,
   VersionDetail
 } from "@/lib/types/domain";
@@ -111,7 +113,7 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
     return { item: null, error: null };
   }
 
-  const [productResult, attachmentsResult, referencesResult, componentsResult, inventoryResult] =
+  const [productResult, attachmentsResult, referencesResult, componentsResult, inventoryResult, linksResult, sellersResult] =
     await Promise.all([
     supabase
       .from("products")
@@ -133,13 +135,29 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
     ),
     safeSelect<InventoryItem>(
       supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
+    ),
+    safeSelect<{ component_id: string; seller_id: string }>(
+      supabase.from("component_sellers").select("component_id,seller_id")
+    ),
+    safeSelect<Seller>(
+      supabase.from("sellers").select("id,name,base_url,lead_time")
     )
     ]);
   const componentMap = new Map(componentsResult.data.map((component) => [component.id, component]));
   const inventoryMap = new Map(inventoryResult.data.map((item) => [item.component_id, item]));
+  const sellerMap = new Map(sellersResult.data.map((seller) => [seller.id, seller]));
+  const leadTimeMap = new Map<string, number | null>();
+  for (const link of linksResult.data) {
+    const leadTime = sellerMap.get(link.seller_id)?.lead_time ?? null;
+    const existing = leadTimeMap.get(link.component_id);
+    if (leadTime === null) {
+      continue;
+    }
+    leadTimeMap.set(link.component_id, existing === null || existing === undefined ? leadTime : Math.min(existing, leadTime));
+  }
   const groupedComponents = new Map<
     string,
-    { component: ComponentMaster; references: string[]; quantity: number; inventory: InventoryItem | null }
+    { component: ComponentMaster; references: string[]; quantity: number; lead_time: number | null; inventory: InventoryItem | null }
   >();
 
   for (const reference of referencesResult.data) {
@@ -157,6 +175,7 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
         component,
         references: [reference.reference],
         quantity: 1,
+        lead_time: leadTimeMap.get(component.id) ?? null,
         inventory: inventoryMap.get(component.id) ?? null
       });
     }
@@ -180,7 +199,9 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
       attachmentsResult.error ??
       referencesResult.error ??
       componentsResult.error ??
-      inventoryResult.error
+      inventoryResult.error ??
+      linksResult.error ??
+      sellersResult.error
   };
 }
 
@@ -374,6 +395,61 @@ export async function getInventory(filters?: {
       }))
       .filter((item) => item.component !== null),
     error: inventoryResult.error ?? componentsResult.error
+  };
+}
+
+export async function getPurchasingOverview(): Promise<{
+  shortages: PurchasingItem[];
+  nearSafety: PurchasingItem[];
+  error: string | null;
+}> {
+  const supabase = createSupabaseClient();
+  const [componentsResult, inventoryResult, linksResult, sellersResult] = await Promise.all([
+    safeSelect<ComponentMaster>(
+      supabase.from("components").select("id,name,category,producer,value,safety_stock").order("category").order("name")
+    ),
+    safeSelect<InventoryItem>(
+      supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
+    ),
+    safeSelect<{ component_id: string; seller_id: string }>(
+      supabase.from("component_sellers").select("component_id,seller_id")
+    ),
+    safeSelect<Seller>(
+      supabase.from("sellers").select("id,name,base_url,lead_time")
+    )
+  ]);
+
+  const inventoryMap = new Map(inventoryResult.data.map((item) => [item.component_id, item]));
+  const sellerMap = new Map(sellersResult.data.map((seller) => [seller.id, seller]));
+  const leadTimeMap = new Map<string, number | null>();
+  for (const link of linksResult.data) {
+    const leadTime = sellerMap.get(link.seller_id)?.lead_time ?? null;
+    const existing = leadTimeMap.get(link.component_id);
+    if (leadTime === null) {
+      continue;
+    }
+    leadTimeMap.set(link.component_id, existing === null || existing === undefined ? leadTime : Math.min(existing, leadTime));
+  }
+
+  const items = componentsResult.data.map((component) => {
+    const inventory = inventoryMap.get(component.id);
+    return {
+      ...component,
+      quantity_available: inventory?.quantity_available ?? 0,
+      purchase_price: inventory?.purchase_price ?? null,
+      lead_time: leadTimeMap.get(component.id) ?? null
+    };
+  });
+  const buckets = buildPurchasingBuckets(items);
+
+  return {
+    shortages: buckets.shortages,
+    nearSafety: buckets.nearSafety,
+    error:
+      componentsResult.error ??
+      inventoryResult.error ??
+      linksResult.error ??
+      sellersResult.error
   };
 }
 

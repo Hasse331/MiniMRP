@@ -8,6 +8,7 @@ import { ImportPreview } from "@/features/import/import-preview";
 import { buildMrpRows, calculateVersionUnitCost, summarizeMrpRows } from "@/lib/mappers/mrp";
 import {
   attachComponentToVersionAction,
+  consumeVersionInventoryAction,
   deleteVersionAction,
   removeComponentFromVersionAction,
   updateVersionAction,
@@ -239,26 +240,40 @@ export default async function VersionDetailPage(props: {
         title="MRP result"
         description="Gross requirement is per-product quantity multiplied by build quantity. Net requirement also considers current safety stock and available inventory."
         actions={
-          <form className="action-row">
-            <label className="inline-field" htmlFor="build-quantity">
-              <span>Qty</span>
-              <input
-                id="build-quantity"
-                className="input quantity-input"
-                type="number"
-                min="1"
-                step="1"
-                name="quantity"
-                defaultValue={requestedQuantity}
-              />
-            </label>
-            <button className="button primary" type="submit">
-              Calculate MRP
-            </button>
+          <div className="action-row">
+            <form className="action-row">
+              <label className="inline-field" htmlFor="build-quantity">
+                <span>Qty</span>
+                <input
+                  id="build-quantity"
+                  className="input quantity-input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  name="quantity"
+                  defaultValue={requestedQuantity}
+                />
+              </label>
+              <button className="button primary" type="submit">
+                Calculate MRP
+              </button>
+            </form>
+            <ModalTrigger buttonLabel="Update inventory" buttonClassName="button danger" title="Update inventory?">
+              <form action={consumeVersionInventoryAction} className="stack">
+                <input type="hidden" name="version_id" value={params.id} />
+                <input type="hidden" name="quantity" value={requestedQuantity} />
+                <div className="notice error">
+                  This will reduce inventory for all components in this version using the current build quantity of {requestedQuantity}.
+                </div>
+                <button className="button danger" type="submit">
+                  Confirm update inventory
+                </button>
+              </form>
+            </ModalTrigger>
             <a className="button-link subtle" href={`/api/export/mrp/${params.id}?quantity=${requestedQuantity}`}>
               Export MRP
             </a>
-          </form>
+          </div>
         }
       >
         {!mrpRows.length ? (
@@ -273,6 +288,7 @@ export default async function VersionDetailPage(props: {
                   <th>Qty per product</th>
                   <th>Build qty</th>
                   <th>Safety stock</th>
+                  <th>Lead time</th>
                   <th>Unit price</th>
                   <th>Gross</th>
                   <th>Gross cost</th>
@@ -289,6 +305,7 @@ export default async function VersionDetailPage(props: {
                     <td>{row.quantityPerProduct}</td>
                     <td>{row.buildQuantity}</td>
                     <td>{row.safetyStock}</td>
+                    <td>{row.leadTime ?? "-"}</td>
                     <td>{row.unitPrice === null ? "-" : row.unitPrice.toFixed(4)}</td>
                     <td>{row.grossRequirement}</td>
                     <td>{row.grossCost === null ? "-" : row.grossCost.toFixed(4)}</td>
@@ -303,6 +320,7 @@ export default async function VersionDetailPage(props: {
                   <td>{mrpSummary.quantityPerProduct}</td>
                   <td>-</td>
                   <td>{mrpSummary.safetyStock}</td>
+                  <td>{mrpSummary.maxLeadTime ?? "-"}</td>
                   <td>-</td>
                   <td>{mrpSummary.grossRequirement}</td>
                   <td>{mrpSummary.grossCost.toFixed(4)}</td>
