@@ -15,8 +15,7 @@ export async function GET(request: Request) {
       category: item.category,
       producer: item.producer,
       value: item.value ?? "",
-      quantity_available: item.quantity_available ?? "",
-      purchase_price: item.purchase_price ?? ""
+      safety_stock: item.safety_stock
     }))
   );
 
@@ -27,4 +26,3 @@ export async function GET(request: Request) {
     }
   });
 }
-

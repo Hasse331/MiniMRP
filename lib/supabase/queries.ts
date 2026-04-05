@@ -1,11 +1,13 @@
 import { createSupabaseClient } from "./client";
 import type {
   Attachment,
+  AppSettings,
   ComponentDetail,
   ComponentListItem,
   ComponentMaster,
   ComponentReference,
   InventoryItem,
+  HistoryEvent,
   Product,
   ProductDetail,
   ProductListItem,
@@ -39,6 +41,24 @@ export async function getProducts(): Promise<{ items: ProductListItem[]; error: 
   return {
     items,
     error: productsResult.error ?? versionsResult.error
+  };
+}
+
+export async function getAppSettings(): Promise<{ item: AppSettings | null; error: string | null }> {
+  const supabase = createSupabaseClient();
+  const result = await supabase
+    .from("app_settings")
+    .select("id,default_safety_stock")
+    .eq("id", true)
+    .maybeSingle<AppSettings>();
+
+  if (result.error) {
+    return { item: null, error: result.error.message };
+  }
+
+  return {
+    item: result.data ?? { id: true, default_safety_stock: 25 },
+    error: null
   };
 }
 
@@ -91,7 +111,8 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
     return { item: null, error: null };
   }
 
-  const [productResult, attachmentsResult, referencesResult, componentsResult] = await Promise.all([
+  const [productResult, attachmentsResult, referencesResult, componentsResult, inventoryResult] =
+    await Promise.all([
     supabase
       .from("products")
       .select("id,name,image")
@@ -108,11 +129,38 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
         .order("reference")
     ),
     safeSelect<ComponentMaster>(
-      supabase.from("components").select("id,name,category,producer,value")
+      supabase.from("components").select("id,name,category,producer,value,safety_stock")
+    ),
+    safeSelect<InventoryItem>(
+      supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
     )
-  ]);
-
+    ]);
   const componentMap = new Map(componentsResult.data.map((component) => [component.id, component]));
+  const inventoryMap = new Map(inventoryResult.data.map((item) => [item.component_id, item]));
+  const groupedComponents = new Map<
+    string,
+    { component: ComponentMaster; references: string[]; quantity: number; inventory: InventoryItem | null }
+  >();
+
+  for (const reference of referencesResult.data) {
+    const component = componentMap.get(reference.component_master_id);
+    if (!component) {
+      continue;
+    }
+
+    const existing = groupedComponents.get(component.id);
+    if (existing) {
+      existing.references.push(reference.reference);
+      existing.quantity += 1;
+    } else {
+      groupedComponents.set(component.id, {
+        component,
+        references: [reference.reference],
+        quantity: 1,
+        inventory: inventoryMap.get(component.id) ?? null
+      });
+    }
+  }
 
   return {
     item: {
@@ -122,13 +170,17 @@ export async function getVersionById(id: string): Promise<{ item: VersionDetail 
       references: referencesResult.data.map((reference) => ({
         reference: reference.reference,
         component: componentMap.get(reference.component_master_id) ?? null
-      }))
+      })),
+      components: Array.from(groupedComponents.values()).sort((left, right) =>
+        left.component.name.localeCompare(right.component.name)
+      )
     },
     error:
       productResult.error?.message ??
       attachmentsResult.error ??
       referencesResult.error ??
-      componentsResult.error
+      componentsResult.error ??
+      inventoryResult.error
   };
 }
 
@@ -139,7 +191,7 @@ export async function getComponents(filters?: {
   const supabase = createSupabaseClient();
   const componentsQuery = supabase
     .from("components")
-    .select("id,name,category,producer,value")
+    .select("id,name,category,producer,value,safety_stock")
     .order("category")
     .order("name");
 
@@ -153,25 +205,62 @@ export async function getComponents(filters?: {
     );
   }
 
-  const [componentsResult, inventoryResult] = await Promise.all([
+  const [componentsResult, inventoryResult, referencesResult, versionsResult, productsResult] = await Promise.all([
     safeSelect<ComponentMaster>(componentsQuery),
     safeSelect<InventoryItem>(
       supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
-    )
+    ),
+    safeSelect<ComponentReference>(
+      supabase.from("component_references").select("version_id,component_master_id,reference")
+    ),
+    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number")),
+    safeSelect<Product>(supabase.from("products").select("id,name,image"))
   ]);
 
   const inventoryMap = new Map(inventoryResult.data.map((item) => [item.component_id, item]));
+  const versionMap = new Map(versionsResult.data.map((version) => [version.id, version]));
+  const productMap = new Map(productsResult.data.map((product) => [product.id, product]));
 
   return {
     items: componentsResult.data.map((component) => {
       const inventory = inventoryMap.get(component.id);
+      const usedInVersionsMap = new Map<
+        string,
+        { product_name: string; version_number: string; references: string[]; quantity: number }
+      >();
+
+      for (const reference of referencesResult.data.filter(
+        (reference) => reference.component_master_id === component.id
+      )) {
+        const version = versionMap.get(reference.version_id);
+        const product = version ? productMap.get(version.product_id) : null;
+        const key = `${version?.id ?? "unknown"}`;
+        const existing = usedInVersionsMap.get(key);
+
+        if (existing) {
+          existing.references.push(reference.reference);
+          existing.quantity += 1;
+        } else {
+          usedInVersionsMap.set(key, {
+            product_name: product?.name ?? "-",
+            version_number: version?.version_number ?? "-",
+            references: [reference.reference],
+            quantity: 1
+          });
+        }
+      }
+
       return {
         ...component,
-        quantity_available: inventory?.quantity_available ?? null,
-        purchase_price: inventory?.purchase_price ?? null
+        used_in_versions: Array.from(usedInVersionsMap.values())
       };
     }),
-    error: componentsResult.error ?? inventoryResult.error
+    error:
+      componentsResult.error ??
+      inventoryResult.error ??
+      referencesResult.error ??
+      versionsResult.error ??
+      productsResult.error
   };
 }
 
@@ -179,7 +268,7 @@ export async function getComponentById(id: string): Promise<{ item: ComponentDet
   const supabase = createSupabaseClient();
   const componentResult = await supabase
     .from("components")
-    .select("id,name,category,producer,value")
+    .select("id,name,category,producer,value,safety_stock")
     .eq("id", id)
     .maybeSingle<ComponentMaster>();
 
@@ -191,7 +280,7 @@ export async function getComponentById(id: string): Promise<{ item: ComponentDet
     return { item: null, error: null };
   }
 
-  const [inventoryResult, linksResult, sellersResult, referencesResult, versionsResult] = await Promise.all([
+  const [inventoryResult, linksResult, sellersResult, referencesResult, versionsResult, productsResult] = await Promise.all([
     supabase
       .from("inventory")
       .select("id,component_id,quantity_available,purchase_price")
@@ -211,11 +300,13 @@ export async function getComponentById(id: string): Promise<{ item: ComponentDet
         .eq("component_master_id", id)
         .order("reference")
     ),
-    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number"))
+    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number")),
+    safeSelect<Product>(supabase.from("products").select("id,name,image"))
   ]);
 
   const sellerMap = new Map(sellersResult.data.map((seller) => [seller.id, seller]));
   const versionMap = new Map(versionsResult.data.map((version) => [version.id, version]));
+  const productMap = new Map(productsResult.data.map((product) => [product.id, product]));
 
   return {
     item: {
@@ -229,7 +320,10 @@ export async function getComponentById(id: string): Promise<{ item: ComponentDet
         .filter((value): value is { seller: Seller; product_url: string | null } => Boolean(value)),
       references: referencesResult.data.map((reference) => ({
         reference: reference.reference,
-        version: versionMap.get(reference.version_id) ?? null
+        version: versionMap.get(reference.version_id) ?? null,
+        product: versionMap.get(reference.version_id)
+          ? productMap.get(versionMap.get(reference.version_id)?.product_id ?? "") ?? null
+          : null
       }))
     },
     error:
@@ -237,7 +331,8 @@ export async function getComponentById(id: string): Promise<{ item: ComponentDet
       linksResult.error ??
       sellersResult.error ??
       referencesResult.error ??
-      versionsResult.error
+      versionsResult.error ??
+      productsResult.error
   };
 }
 
@@ -251,7 +346,7 @@ export async function getInventory(filters?: {
       supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
     ),
     safeSelect<ComponentMaster>(
-      supabase.from("components").select("id,name,category,producer,value").order("category").order("name")
+      supabase.from("components").select("id,name,category,producer,value,safety_stock").order("category").order("name")
     )
   ]);
 
@@ -282,3 +377,17 @@ export async function getInventory(filters?: {
   };
 }
 
+export async function getHistory(): Promise<{ items: HistoryEvent[]; error: string | null }> {
+  const supabase = createSupabaseClient();
+  const result = await safeSelect<HistoryEvent>(
+    supabase
+      .from("history_events")
+      .select("id,entity_type,entity_id,action_type,summary,old_value,new_value,created_at")
+      .order("created_at", { ascending: false })
+  );
+
+  return {
+    items: result.data,
+    error: result.error
+  };
+}

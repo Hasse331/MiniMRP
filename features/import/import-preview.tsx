@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import Papa from "papaparse";
 import readXlsxFile from "read-excel-file";
 import { Notice, Panel } from "@/components/ui";
@@ -39,6 +40,8 @@ export function ImportPreview(props: {
   title: string;
   description: string;
   mappingHint: string;
+  actions?: ReactNode;
+  plain?: boolean;
 }) {
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -64,8 +67,8 @@ export function ImportPreview(props: {
 
   const columns = Object.keys(rows[0] ?? {});
 
-  return (
-    <Panel title={props.title} description={props.description}>
+  const content = (
+    <>
       <div className="file-drop">
         <input
           className="input"
@@ -99,6 +102,16 @@ export function ImportPreview(props: {
           </div>
         ) : null}
       </div>
+    </>
+  );
+
+  if (props.plain) {
+    return content;
+  }
+
+  return (
+    <Panel title={props.title} description={props.description} actions={props.actions}>
+      {content}
     </Panel>
   );
 }

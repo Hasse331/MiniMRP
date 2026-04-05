@@ -145,6 +145,24 @@ select {
   align-items: center;
 }
 
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.quantity-input {
+  width: 96px;
+}
+
 .toolbar form {
   display: flex;
   flex-wrap: wrap;
@@ -175,6 +193,13 @@ select {
 .button-link.primary {
   background: var(--accent);
   border-color: var(--accent);
+  color: white;
+}
+
+.button.danger,
+.button-link.danger {
+  background: #b73a3a;
+  border-color: #b73a3a;
   color: white;
 }
 
@@ -249,6 +274,16 @@ th {
   font-size: 0.88rem;
 }
 
+.field-group {
+  display: grid;
+  gap: 6px;
+}
+
+.field-group label {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
 .empty {
   padding: 18px;
   border: 1px dashed var(--line);
@@ -278,6 +313,42 @@ th {
 
 .small {
   font-size: 0.88rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.modal {
+  border: 0;
+  padding: 0;
+  width: min(640px, calc(100vw - 24px));
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.modal-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-head h4 {
+  margin: 0;
 }
 
 .image-frame {
@@ -312,4 +383,3 @@ th {
     grid-template-columns: 1fr;
   }
 }
-

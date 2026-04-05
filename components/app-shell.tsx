@@ -7,7 +7,8 @@ import type { ReactNode } from "react";
 const navigation = [
   { href: "/products", label: "Products" },
   { href: "/components", label: "Components" },
-  { href: "/inventory", label: "Inventory" }
+  { href: "/inventory", label: "Inventory" },
+  { href: "/history", label: "History" }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -34,4 +35,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-

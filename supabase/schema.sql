@@ -19,7 +19,8 @@ create table if not exists components (
   name text not null,
   category text not null,
   producer text not null,
-  value text
+  value text,
+  safety_stock integer not null default 25
 );
 
 create index if not exists components_category_idx on components(category);
@@ -69,6 +70,32 @@ create table if not exists attachments (
 
 create index if not exists attachments_version_id_idx on attachments(version_id);
 
+create table if not exists history_events (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id text,
+  action_type text not null,
+  summary text not null,
+  old_value text,
+  new_value text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists history_events_created_at_idx on history_events(created_at desc);
+
+create table if not exists app_settings (
+  id boolean primary key default true check (id = true),
+  default_safety_stock integer not null default 25
+);
+
+insert into app_settings (id, default_safety_stock)
+values (true, 25)
+on conflict (id) do nothing;
+
+alter table components add column if not exists safety_stock integer not null default 25;
+alter table history_events add column if not exists old_value text;
+alter table history_events add column if not exists new_value text;
+
 alter table products disable row level security;
 alter table product_versions disable row level security;
 alter table components disable row level security;
@@ -77,3 +104,5 @@ alter table component_sellers disable row level security;
 alter table component_references disable row level security;
 alter table inventory disable row level security;
 alter table attachments disable row level security;
+alter table history_events disable row level security;
+alter table app_settings disable row level security;

@@ -16,6 +16,7 @@ export interface ComponentMaster {
   category: string;
   producer: string;
   value: string | null;
+  safety_stock: number;
 }
 
 export interface Seller {
@@ -44,6 +45,22 @@ export interface InventoryItem {
   purchase_price: number | null;
 }
 
+export interface HistoryEvent {
+  id: string;
+  entity_type: string;
+  entity_id: string | null;
+  action_type: string;
+  summary: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+}
+
+export interface AppSettings {
+  id: boolean;
+  default_safety_stock: number;
+}
+
 export interface Attachment {
   id: string;
   version_id: string;
@@ -65,11 +82,21 @@ export interface VersionDetail extends ProductVersion {
     reference: string;
     component: ComponentMaster | null;
   }>;
+  components: Array<{
+    component: ComponentMaster;
+    references: string[];
+    quantity: number;
+    inventory: InventoryItem | null;
+  }>;
 }
 
 export interface ComponentListItem extends ComponentMaster {
-  quantity_available: number | null;
-  purchase_price: number | null;
+  used_in_versions: Array<{
+    product_name: string;
+    version_number: string;
+    references: string[];
+    quantity: number;
+  }>;
 }
 
 export interface ComponentDetail extends ComponentMaster {
@@ -81,6 +108,6 @@ export interface ComponentDetail extends ComponentMaster {
   references: Array<{
     reference: string;
     version: ProductVersion | null;
+    product: Product | null;
   }>;
 }
-
