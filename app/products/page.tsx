@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { PageHeader, Panel, EmptyState, Notice, Badge } from "@/components/ui";
-import { getProducts } from "@/lib/supabase/queries";
+import { Badge, EmptyState, Notice, PageHeader, Panel } from "@/shared/ui";
+import { getProductList } from "@/lib/supabase/queries/index";
 
 export default async function ProductsPage() {
-  const { items, error } = await getProducts();
+  const { items, error } = await getProductList();
 
   return (
     <div className="page">
@@ -56,4 +56,3 @@ export default async function ProductsPage() {
     </div>
   );
 }
-

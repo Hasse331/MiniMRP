@@ -7,4 +7,3 @@ export function BackLink(props: { href: string; label?: string }) {
     </Link>
   );
 }
-

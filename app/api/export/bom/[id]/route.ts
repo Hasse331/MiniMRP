@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getVersionById } from "@/lib/supabase/queries";
 import { rowsToCsv } from "@/lib/mappers/export";
+import { getVersionDetail } from "@/lib/supabase/queries/index";
 
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   const params = await context.params;
-  const { item } = await getVersionById(params.id);
+  const { item } = await getVersionDetail(params.id);
 
   const csv = rowsToCsv(
     (item?.components ?? []).map((row) => ({

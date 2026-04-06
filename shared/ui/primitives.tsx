@@ -47,4 +47,3 @@ export function Notice(props: { children: ReactNode; error?: boolean }) {
 export function Badge({ children }: { children: ReactNode }) {
   return <span className="badge">{children}</span>;
 }
-

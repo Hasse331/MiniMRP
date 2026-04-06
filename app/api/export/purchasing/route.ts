@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { rowsToCsv } from "@/lib/mappers/export";
-import { getPurchasingOverview } from "@/lib/supabase/queries";
+import { getPurchasingOverview } from "@/lib/supabase/queries/index";
 
 export async function GET() {
   const { shortages } = await getPurchasingOverview();

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { rowsToCsv } from "@/lib/mappers/export";
-import { getComponents } from "@/lib/supabase/queries";
+import { getPartCatalog } from "@/lib/supabase/queries/index";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const { items } = await getComponents({
+  const { items } = await getPartCatalog({
     category: searchParams.get("category") ?? undefined,
     search: searchParams.get("search") ?? undefined
   });

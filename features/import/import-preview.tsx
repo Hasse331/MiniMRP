@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import Papa from "papaparse";
 import readXlsxFile from "read-excel-file";
-import { Notice, Panel } from "@/components/ui";
+import { Notice, Panel } from "@/shared/ui";
 
 type ImportRow = Record<string, string>;
 
