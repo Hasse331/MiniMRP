@@ -72,7 +72,7 @@ export function buildMrpRows(components: VersionComponent[], buildQuantity: numb
     const grossRequirement = row.quantity * buildQuantity;
     const availableInventory = row.inventory?.quantity_available ?? 0;
     const safetyStock = row.component.safety_stock ?? 0;
-    const netRequirement = Math.max(grossRequirement + safetyStock - availableInventory, 0);
+    const netRequirement = Math.max(grossRequirement - availableInventory, 0);
     const grossCost = unitPrice === null ? null : roundCurrency(grossRequirement * unitPrice);
     const netCost = unitPrice === null ? null : roundCurrency(netRequirement * unitPrice);
 
@@ -140,7 +140,8 @@ export function buildPurchasingBuckets<T extends {
     .filter((item) => item.quantity_available < item.safety_stock)
     .map((item) => ({
       ...item,
-      recommended_order_quantity: Math.max(item.safety_stock - item.quantity_available, 0)
+      recommended_order_quantity:
+        Math.max(item.safety_stock - item.quantity_available, 0) + item.safety_stock
     }))
     .sort((left, right) => left.quantity_available - right.quantity_available);
 
@@ -156,4 +157,87 @@ export function buildPurchasingBuckets<T extends {
     .sort((left, right) => left.quantity_available - right.quantity_available);
 
   return { shortages, nearSafety };
+}
+
+export interface ProductionRequirementItem {
+  componentId: string;
+  componentName: string;
+  category: string;
+  producer: string;
+  value: string | null;
+  safetyStock: number;
+  leadTime: number | null;
+  availableInventory: number;
+  totalGrossRequirement: number;
+  totalNetRequirement: number;
+}
+
+export interface ReservedProductionRequirement {
+  componentId: string;
+  grossRequirement: number;
+  inventoryConsumed: number;
+  netRequirement: number;
+  remainingInventory: number;
+}
+
+export function reserveInventoryForProduction(rows: MrpRow[]): ReservedProductionRequirement[] {
+  return rows.map((row) => {
+    const inventoryConsumed = Math.min(row.availableInventory, row.grossRequirement);
+    return {
+      componentId: row.componentId,
+      grossRequirement: row.grossRequirement,
+      inventoryConsumed,
+      netRequirement: Math.max(row.grossRequirement - inventoryConsumed, 0),
+      remainingInventory: Math.max(row.availableInventory - row.grossRequirement, 0)
+    };
+  });
+}
+
+export function buildProductionShortageMetrics(input: {
+  totalGrossRequirement: number;
+  totalNetRequirement: number;
+  availableInventory: number;
+  safetyStock: number;
+}) {
+  return {
+    netNeed: input.totalNetRequirement,
+    recommendedOrderQuantity: input.totalNetRequirement + input.safetyStock
+  };
+}
+
+export function aggregateProductionRequirements(rows: MrpRow[]) {
+  const grouped = new Map<string, ProductionRequirementItem>();
+
+  for (const row of rows) {
+    const existing = grouped.get(row.componentId);
+    if (existing) {
+      existing.totalGrossRequirement += row.grossRequirement;
+      existing.totalNetRequirement += row.grossRequirement;
+      existing.leadTime =
+        row.leadTime === null
+          ? existing.leadTime
+          : existing.leadTime === null
+            ? row.leadTime
+            : Math.min(existing.leadTime, row.leadTime);
+      continue;
+    }
+
+    grouped.set(row.componentId, {
+      componentId: row.componentId,
+      componentName: row.componentName,
+      category: row.category,
+      producer: row.producer,
+      value: row.value,
+      safetyStock: row.safetyStock,
+      leadTime: row.leadTime,
+      availableInventory: row.availableInventory,
+      totalGrossRequirement: row.grossRequirement,
+      totalNetRequirement: row.grossRequirement
+    });
+  }
+
+  return Array.from(grouped.values()).map((item) => ({
+    ...item,
+    totalNetRequirement: Math.max(item.totalGrossRequirement - item.availableInventory, 0)
+  }));
 }

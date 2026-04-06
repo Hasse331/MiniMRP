@@ -1,6 +1,8 @@
 delete from history_events;
 delete from component_references;
 delete from attachments;
+delete from production_requirements;
+delete from production_entries;
 delete from inventory;
 delete from component_sellers;
 delete from sellers;

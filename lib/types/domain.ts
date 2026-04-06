@@ -117,5 +117,33 @@ export interface PurchasingItem extends ComponentMaster {
   quantity_available: number;
   purchase_price: number | null;
   lead_time: number | null;
+  net_need: number;
+  seller_id?: string | null;
+  seller_name?: string | null;
+  seller_base_url?: string | null;
+  seller_product_url?: string | null;
   recommended_order_quantity: number;
+}
+
+export interface ProductionEntry {
+  id: string;
+  version_id: string;
+  quantity: number;
+  created_at: string;
+}
+
+export interface ProductionRequirement {
+  id: string;
+  production_entry_id: string;
+  component_id: string;
+  gross_requirement: number;
+  inventory_consumed: number;
+  net_requirement: number;
+  created_at: string;
+}
+
+export interface ProductionListItem extends ProductionEntry {
+  product: Product | null;
+  version: ProductVersion | null;
+  longest_lead_time: number | null;
 }

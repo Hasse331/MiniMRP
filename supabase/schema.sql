@@ -70,6 +70,29 @@ create table if not exists attachments (
 
 create index if not exists attachments_version_id_idx on attachments(version_id);
 
+create table if not exists production_entries (
+  id uuid primary key default gen_random_uuid(),
+  version_id uuid not null references product_versions(id) on delete cascade,
+  quantity integer not null check (quantity > 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists production_entries_version_id_idx on production_entries(version_id);
+create index if not exists production_entries_created_at_idx on production_entries(created_at desc);
+
+create table if not exists production_requirements (
+  id uuid primary key default gen_random_uuid(),
+  production_entry_id uuid not null references production_entries(id) on delete cascade,
+  component_id uuid not null references components(id) on delete cascade,
+  gross_requirement integer not null default 0 check (gross_requirement >= 0),
+  inventory_consumed integer not null default 0 check (inventory_consumed >= 0),
+  net_requirement integer not null default 0 check (net_requirement >= 0),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists production_requirements_entry_id_idx on production_requirements(production_entry_id);
+create index if not exists production_requirements_component_id_idx on production_requirements(component_id);
+
 create table if not exists history_events (
   id uuid primary key default gen_random_uuid(),
   entity_type text not null,
@@ -104,5 +127,7 @@ alter table component_sellers disable row level security;
 alter table component_references disable row level security;
 alter table inventory disable row level security;
 alter table attachments disable row level security;
+alter table production_entries disable row level security;
+alter table production_requirements disable row level security;
 alter table history_events disable row level security;
 alter table app_settings disable row level security;

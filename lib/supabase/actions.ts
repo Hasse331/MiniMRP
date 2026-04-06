@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { normalizeReferencesInput } from "@/lib/mappers/bom";
 import { applyInventoryAdjustment } from "@/lib/mappers/inventory";
+import { buildMrpRows, reserveInventoryForProduction } from "@/lib/mappers/mrp";
+import { getSchemaSetupErrorMessage } from "@/lib/mappers/supabase-errors";
+import { getVersionById } from "@/lib/supabase/queries";
 import { createSupabaseClient } from "./client";
 
 async function recordHistory(args: {
@@ -237,12 +241,7 @@ export async function attachComponentToVersionAction(formData: FormData) {
   const supabase = createSupabaseClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
-  const referencesRaw = requiredValue(formData.get("references"), "References");
-
-  const references = referencesRaw
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const references = normalizeReferencesInput(formData.get("references"));
 
   for (const reference of references) {
     const result = await supabase.from("component_references").upsert(
@@ -350,7 +349,9 @@ export async function upsertComponentLinkAction(formData: FormData) {
   });
 
   revalidatePath(`/components/${componentId}`);
-  redirect(`/components/${componentId}`);
+  revalidatePath("/purchasing");
+  const returnTo = optionalValue(formData.get("returnTo"));
+  redirect(returnTo ?? `/components/${componentId}`);
 }
 
 export async function createSellerForComponentAction(formData: FormData) {
@@ -802,4 +803,89 @@ export async function consumeVersionInventoryAction(formData: FormData) {
   revalidatePath("/purchasing");
   revalidatePath("/history");
   redirect(`/versions/${versionId}?quantity=${buildQuantity}`);
+}
+
+export async function addProductionEntryAction(formData: FormData) {
+  const supabase = createSupabaseClient();
+  const versionId = requiredValue(formData.get("version_id"), "Version id");
+  const quantity = Math.max(Number(requiredValue(formData.get("quantity"), "Quantity")), 1);
+  const versionDetail = await getVersionById(versionId);
+
+  if (versionDetail.error) {
+    throw new Error(versionDetail.error);
+  }
+
+  if (!versionDetail.item) {
+    throw new Error("Version not found.");
+  }
+
+  const mrpRows = buildMrpRows(versionDetail.item.components, quantity);
+  const reservedRequirements = reserveInventoryForProduction(mrpRows);
+
+  const result = await supabase
+    .from("production_entries")
+    .insert({
+      version_id: versionId,
+      quantity
+    })
+    .select("id,version_id,quantity,created_at")
+    .single();
+
+  if (result.error || !result.data) {
+    throw new Error(result.error?.message ?? "Could not add production entry.");
+  }
+
+  if (reservedRequirements.length > 0) {
+    const requirementsInsert = await supabase.from("production_requirements").insert(
+      reservedRequirements.map((row) => ({
+        production_entry_id: result.data.id,
+        component_id: row.componentId,
+        gross_requirement: row.grossRequirement,
+        inventory_consumed: row.inventoryConsumed,
+        net_requirement: row.netRequirement
+      }))
+    );
+
+    if (requirementsInsert.error) {
+      await supabase.from("production_entries").delete().eq("id", result.data.id);
+      throw new Error(getSchemaSetupErrorMessage(requirementsInsert.error.message, "production_requirements"));
+    }
+  }
+
+  for (const component of versionDetail.item.components) {
+    const reservation = reservedRequirements.find((row) => row.componentId === component.component.id);
+    if (!component.inventory?.id || !reservation) {
+      continue;
+    }
+
+    const inventoryUpdate = await supabase
+      .from("inventory")
+      .update({ quantity_available: reservation.remainingInventory })
+      .eq("id", component.inventory.id);
+
+    if (inventoryUpdate.error) {
+      await supabase.from("production_requirements").delete().eq("production_entry_id", result.data.id);
+      await supabase.from("production_entries").delete().eq("id", result.data.id);
+      throw new Error(inventoryUpdate.error.message);
+    }
+  }
+
+  await recordHistory({
+    entity_type: "production",
+    entity_id: result.data.id,
+    action_type: "create",
+    summary: `Added version ${versionId} to production with quantity ${quantity} and consumed available inventory`,
+    new_value: stringifyHistoryValue({
+      ...result.data,
+      requirements: reservedRequirements
+    })
+  });
+
+  revalidatePath(`/versions/${versionId}`);
+  revalidatePath("/inventory");
+  revalidatePath("/components");
+  revalidatePath("/production");
+  revalidatePath("/purchasing");
+  revalidatePath("/history");
+  redirect("/production");
 }

@@ -4,7 +4,8 @@ import {
   buildMrpRows,
   summarizeMrpRows,
   calculateVersionUnitCost,
-  calculateWeightedAveragePrice
+  calculateWeightedAveragePrice,
+  buildProductionShortageMetrics
 } from "../lib/mappers/mrp.ts";
 
 test("buildMrpRows calculates quantities and costs", () => {
@@ -34,9 +35,9 @@ test("buildMrpRows calculates quantities and costs", () => {
   );
 
   assert.equal(rows[0]?.grossRequirement, 8);
-  assert.equal(rows[0]?.netRequirement, 7);
+  assert.equal(rows[0]?.netRequirement, 5);
   assert.equal(rows[0]?.grossCost, 4);
-  assert.equal(rows[0]?.netCost, 3.5);
+  assert.equal(rows[0]?.netCost, 2.5);
 });
 
 test("calculateVersionUnitCost sums one product cost", () => {
@@ -85,9 +86,9 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       availableInventory: 3,
       unitPrice: 1.5,
       grossRequirement: 10,
-      netRequirement: 32,
+      netRequirement: 7,
       grossCost: 15,
-      netCost: 48
+      netCost: 10.5
     },
     {
       componentId: "2",
@@ -103,9 +104,9 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       availableInventory: 6,
       unitPrice: 2,
       grossRequirement: 5,
-      netRequirement: 9,
+      netRequirement: 0,
       grossCost: 10,
-      netCost: 18
+      netCost: 0
     }
   ]);
 
@@ -114,9 +115,9 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
   assert.equal(summary.maxLeadTime, 14);
   assert.equal(summary.availableInventory, 9);
   assert.equal(summary.grossRequirement, 15);
-  assert.equal(summary.netRequirement, 41);
+  assert.equal(summary.netRequirement, 7);
   assert.equal(summary.grossCost, 25);
-  assert.equal(summary.netCost, 66);
+  assert.equal(summary.netCost, 10.5);
 });
 
 test("buildMrpRows carries lead time through to results", () => {
@@ -188,8 +189,20 @@ test("buildPurchasingBuckets separates shortages and near-safety components", as
   ]);
 
   assert.equal(result.shortages.length, 1);
-  assert.equal(result.shortages[0]?.recommended_order_quantity, 12);
+  assert.equal(result.shortages[0]?.recommended_order_quantity, 32);
   assert.equal(result.nearSafety.length, 2);
   assert.equal(result.nearSafety[0]?.id, "1");
   assert.equal(result.nearSafety[1]?.id, "2");
+});
+
+test("buildProductionShortageMetrics keeps net need separate from safety-stock-based recommended order", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 40,
+    totalNetRequirement: 12,
+    availableInventory: 28,
+    safetyStock: 25
+  });
+
+  assert.equal(metrics.netNeed, 12);
+  assert.equal(metrics.recommendedOrderQuantity, 37);
 });

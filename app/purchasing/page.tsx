@@ -1,6 +1,6 @@
 import { ModalTrigger } from "@/components/modal-trigger";
 import { EmptyState, Notice, PageHeader, Panel } from "@/components/ui";
-import { updateComponentSafetyStockAction } from "@/lib/supabase/actions";
+import { updateComponentSafetyStockAction, upsertComponentLinkAction } from "@/lib/supabase/actions";
 import { getPurchasingOverview } from "@/lib/supabase/queries";
 
 export default async function PurchasingPage() {
@@ -10,14 +10,19 @@ export default async function PurchasingPage() {
     <div className="page">
       <PageHeader
         title="Purchasing"
-        description="Shortages and near-safety-stock components for purchasing decisions."
+        description="Production-driven shortages and near-safety-stock components for purchasing decisions."
+        actions={
+          <a className="button-link subtle" href="/api/export/purchasing">
+            Export CSV
+          </a>
+        }
       />
 
       {error ? <Notice error>{error}</Notice> : null}
 
       <Panel
         title="Current shortages"
-        description="Components currently below safety stock with suggested reorder quantity."
+        description="Summed production net need per component, with suggested reorder quantity including safety stock."
       >
         {shortages.length === 0 ? (
           <EmptyState>No current shortages.</EmptyState>
@@ -30,8 +35,11 @@ export default async function PurchasingPage() {
                   <th>Category</th>
                   <th>Available</th>
                   <th>Safety stock</th>
+                  <th>Net need</th>
                   <th>Recommended order</th>
                   <th>Lead time</th>
+                  <th>Seller</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -41,8 +49,47 @@ export default async function PurchasingPage() {
                     <td>{item.category}</td>
                     <td>{item.quantity_available}</td>
                     <td>{item.safety_stock}</td>
+                    <td>{item.net_need}</td>
                     <td>{item.recommended_order_quantity}</td>
                     <td>{item.lead_time ?? "-"}</td>
+                    <td>
+                      {item.seller_product_url ? (
+                        <a className="button-link subtle" href={item.seller_product_url} target="_blank" rel="noreferrer">
+                          {item.seller_name ?? "View seller"}
+                        </a>
+                      ) : (
+                        item.seller_name ?? "-"
+                      )}
+                    </td>
+                    <td>
+                      {item.seller_id ? (
+                        <ModalTrigger buttonLabel="Edit seller" title={`Edit seller link: ${item.name}`}>
+                          <form action={upsertComponentLinkAction} className="stack">
+                            <input type="hidden" name="component_id" value={item.id} />
+                            <input type="hidden" name="seller_id" value={item.seller_id} />
+                            <input type="hidden" name="component_name" value={item.name} />
+                            <input type="hidden" name="returnTo" value="/purchasing" />
+                            <div className="field-group">
+                              <label htmlFor={`purchasing-base-url-${item.id}`}>Base URL</label>
+                              <input id={`purchasing-base-url-${item.id}`} className="input" name="base_url" defaultValue={item.seller_base_url ?? ""} />
+                            </div>
+                            <div className="field-group">
+                              <label htmlFor={`purchasing-lead-time-${item.id}`}>Lead time</label>
+                              <input id={`purchasing-lead-time-${item.id}`} className="input" type="number" min="0" step="1" name="lead_time" defaultValue={item.lead_time ?? ""} />
+                            </div>
+                            <div className="field-group">
+                              <label htmlFor={`purchasing-product-url-${item.id}`}>Product URL</label>
+                              <input id={`purchasing-product-url-${item.id}`} className="input" name="product_url" defaultValue={item.seller_product_url ?? ""} />
+                            </div>
+                            <button className="button primary" type="submit">
+                              Save seller
+                            </button>
+                          </form>
+                        </ModalTrigger>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -53,7 +100,7 @@ export default async function PurchasingPage() {
 
       <Panel
         title="Near safety stock"
-        description="Components close to safety stock or just above it."
+        description="Components with inventory above zero but below 1.5x safety stock, excluding active shortages."
       >
         {nearSafety.length === 0 ? (
           <EmptyState>No components near safety stock.</EmptyState>

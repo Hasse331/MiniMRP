@@ -7,8 +7,8 @@ import { EmptyState, Notice, PageHeader, Panel } from "@/components/ui";
 import { ImportPreview } from "@/features/import/import-preview";
 import { buildMrpRows, calculateVersionUnitCost, summarizeMrpRows } from "@/lib/mappers/mrp";
 import {
+  addProductionEntryAction,
   attachComponentToVersionAction,
-  consumeVersionInventoryAction,
   deleteVersionAction,
   removeComponentFromVersionAction,
   updateVersionAction,
@@ -238,7 +238,7 @@ export default async function VersionDetailPage(props: {
 
       <Panel
         title="MRP result"
-        description="Gross requirement is per-product quantity multiplied by build quantity. Net requirement also considers current safety stock and available inventory."
+        description="Gross requirement is per-product quantity multiplied by build quantity. Net requirement subtracts current available inventory, and Add to production consumes gross requirement from stock immediately."
         actions={
           <div className="action-row">
             <form className="action-row">
@@ -258,21 +258,18 @@ export default async function VersionDetailPage(props: {
                 Calculate MRP
               </button>
             </form>
-            <ModalTrigger buttonLabel="Update inventory" buttonClassName="button danger" title="Update inventory?">
-              <form action={consumeVersionInventoryAction} className="stack">
+            <ModalTrigger buttonLabel="Add to production" buttonClassName="button primary" title="Add to production?">
+              <form action={addProductionEntryAction} className="stack">
                 <input type="hidden" name="version_id" value={params.id} />
                 <input type="hidden" name="quantity" value={requestedQuantity} />
-                <div className="notice error">
-                  This will reduce inventory for all components in this version using the current build quantity of {requestedQuantity}.
+                <div className="notice">
+                  This will add the current version to the production queue with build quantity {requestedQuantity}, consume available inventory by gross requirement, and leave any missing quantity in purchasing as net need.
                 </div>
-                <button className="button danger" type="submit">
-                  Confirm update inventory
+                <button className="button primary" type="submit">
+                  Confirm add to production
                 </button>
               </form>
             </ModalTrigger>
-            <a className="button-link subtle" href={`/api/export/mrp/${params.id}?quantity=${requestedQuantity}`}>
-              Export MRP
-            </a>
           </div>
         }
       >
