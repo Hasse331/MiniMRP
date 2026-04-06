@@ -74,6 +74,8 @@ create table if not exists production_entries (
   id uuid primary key default gen_random_uuid(),
   version_id uuid not null references product_versions(id) on delete cascade,
   quantity integer not null check (quantity > 0),
+  status text not null default 'under_production' check (status in ('under_production', 'completed')),
+  completed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -118,6 +120,8 @@ on conflict (id) do nothing;
 alter table components add column if not exists safety_stock integer not null default 25;
 alter table history_events add column if not exists old_value text;
 alter table history_events add column if not exists new_value text;
+alter table production_entries add column if not exists status text not null default 'under_production';
+alter table production_entries add column if not exists completed_at timestamptz;
 
 alter table products disable row level security;
 alter table product_versions disable row level security;

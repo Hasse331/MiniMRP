@@ -19,6 +19,8 @@ export interface MrpRow {
   netRequirement: number;
   grossCost: number | null;
   netCost: number | null;
+  reservedInventory?: number;
+  activeProductionQuantity?: number;
 }
 
 function roundCurrency(value: number) {
@@ -92,7 +94,9 @@ export function buildMrpRows(components: VersionComponent[], buildQuantity: numb
       grossRequirement,
       netRequirement,
       grossCost,
-      netCost
+      netCost,
+      reservedInventory: row.reserved?.inventory_consumed ?? 0,
+      activeProductionQuantity: row.reserved?.active_production_quantity ?? 0
     };
   });
 }
@@ -109,6 +113,7 @@ export function summarizeMrpRows(rows: MrpRow[]) {
       availableInventory: summary.availableInventory + row.availableInventory,
       grossRequirement: summary.grossRequirement + row.grossRequirement,
       netRequirement: summary.netRequirement + row.netRequirement,
+      reservedInventory: summary.reservedInventory + (row.reservedInventory ?? 0),
       grossCost: roundCurrency(summary.grossCost + (row.grossCost ?? 0)),
       netCost: roundCurrency(summary.netCost + (row.netCost ?? 0))
     }),
@@ -119,10 +124,19 @@ export function summarizeMrpRows(rows: MrpRow[]) {
       availableInventory: 0,
       grossRequirement: 0,
       netRequirement: 0,
+      reservedInventory: 0,
       grossCost: 0,
       netCost: 0
     }
   );
+}
+
+export function calculateProductionLongestLeadTime(rows: MrpRow[]) {
+  const shortageLeadTimes = rows
+    .filter((row) => row.netRequirement > 0 && row.leadTime !== null)
+    .map((row) => row.leadTime ?? 0);
+
+  return shortageLeadTimes.length > 0 ? Math.max(...shortageLeadTimes) : 0;
 }
 
 export function buildPurchasingBuckets<T extends {

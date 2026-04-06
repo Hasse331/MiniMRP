@@ -1,15 +1,23 @@
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product, ProductVersion, ProductionEntry, ProductionListItem } from "@/lib/types/domain";
+import { buildMrpRows, calculateProductionLongestLeadTime } from "@/lib/mappers/mrp";
 import { createSupabaseClient } from "../client";
 import { safeSelect } from "./shared";
 import { getVersionDetail } from "./versions";
 
-export async function getProductionOverview(): Promise<{ items: ProductionListItem[]; error: string | null }> {
+export async function getProductionOverview(): Promise<{
+  underProduction: ProductionListItem[];
+  completed: ProductionListItem[];
+  error: string | null;
+}> {
   noStore();
   const supabase = createSupabaseClient();
   const [entriesResult, versionsResult, productsResult] = await Promise.all([
     safeSelect<ProductionEntry>(
-      supabase.from("production_entries").select("id,version_id,quantity,created_at").order("created_at", { ascending: false })
+      supabase
+        .from("production_entries")
+        .select("id,version_id,quantity,status,completed_at,created_at")
+        .order("created_at", { ascending: false })
     ),
     safeSelect<ProductVersion>(
       supabase.from("product_versions").select("id,product_id,version_number")
@@ -27,10 +35,8 @@ export async function getProductionOverview(): Promise<{ items: ProductionListIt
       const version = versionMap.get(entry.version_id) ?? null;
       const product = version ? productMap.get(version.product_id) ?? null : null;
       const versionDetail = await getVersionDetail(entry.version_id);
-      const longestLeadTime = Math.max(
-        0,
-        ...(versionDetail.item?.components.map((component) => component.lead_time ?? 0) ?? [0])
-      );
+      const mrpRows = buildMrpRows(versionDetail.item?.components ?? [], entry.quantity);
+      const longestLeadTime = calculateProductionLongestLeadTime(mrpRows);
 
       return {
         ...entry,
@@ -42,7 +48,8 @@ export async function getProductionOverview(): Promise<{ items: ProductionListIt
   );
 
   return {
-    items,
+    underProduction: items.filter((item) => item.status === "under_production"),
+    completed: items.filter((item) => item.status === "completed"),
     error: entriesResult.error ?? versionsResult.error ?? productsResult.error
   };
 }

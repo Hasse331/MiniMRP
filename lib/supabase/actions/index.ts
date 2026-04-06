@@ -8,7 +8,11 @@ export {
   upsertPartSellerLinkAction
 } from "./parts";
 export { createVersionAction, updateProductAction } from "./products";
-export { addProductionEntryAction } from "./production";
+export {
+  addProductionEntryAction,
+  cancelProductionEntryAction,
+  completeProductionEntryAction
+} from "./production";
 export { updateDefaultSafetyStockAction } from "./settings";
 export {
   attachPartToVersionAction,

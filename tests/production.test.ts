@@ -1,105 +1,82 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  aggregateProductionRequirements,
-  reserveInventoryForProduction
-} from "../lib/mappers/mrp.ts";
+import { summarizeReservedRequirements } from "../lib/mappers/production.ts";
+import { buildMrpRows } from "../lib/mappers/mrp.ts";
 
-test("aggregateProductionRequirements sums gross needs and calculates net against available stock once", () => {
-  const result = aggregateProductionRequirements([
+test("summarizeReservedRequirements aggregates reserved values per component", () => {
+  const summary = summarizeReservedRequirements([
     {
-      componentId: "1",
-      componentName: "MCU",
-      category: "IC",
-      producer: "ST",
-      value: "STM32",
-      references: ["U1"],
-      quantityPerProduct: 1,
-      buildQuantity: 5,
-      safetyStock: 10,
-      leadTime: 14,
-      availableInventory: 6,
-      unitPrice: 1,
-      grossRequirement: 5,
-      netRequirement: 9,
-      grossCost: 5,
-      netCost: 9
+      component_id: "c1",
+      gross_requirement: 12,
+      inventory_consumed: 5,
+      net_requirement: 7,
+      quantity: 3
     },
     {
-      componentId: "1",
-      componentName: "MCU",
-      category: "IC",
-      producer: "ST",
-      value: "STM32",
-      references: ["U1"],
-      quantityPerProduct: 1,
-      buildQuantity: 7,
-      safetyStock: 10,
-      leadTime: 7,
-      availableInventory: 6,
-      unitPrice: 1,
-      grossRequirement: 7,
-      netRequirement: 11,
-      grossCost: 7,
-      netCost: 11
+      component_id: "c1",
+      gross_requirement: 4,
+      inventory_consumed: 4,
+      net_requirement: 0,
+      quantity: 2
+    },
+    {
+      component_id: "c2",
+      gross_requirement: 6,
+      inventory_consumed: 1,
+      net_requirement: 5,
+      quantity: 3
     }
   ]);
 
-  assert.equal(result.length, 1);
-  assert.equal(result[0]?.totalGrossRequirement, 12);
-  assert.equal(result[0]?.totalNetRequirement, 6);
-  assert.equal(result[0]?.leadTime, 7);
+  assert.deepEqual(summary.c1, {
+    grossRequirement: 16,
+    inventoryConsumed: 9,
+    netRequirement: 7,
+    activeProductionQuantity: 5,
+    activeEntryCount: 2
+  });
+  assert.deepEqual(summary.c2, {
+    grossRequirement: 6,
+    inventoryConsumed: 1,
+    netRequirement: 5,
+    activeProductionQuantity: 3,
+    activeEntryCount: 1
+  });
 });
 
-test("aggregateProductionRequirements reports zero net need when available stock covers gross requirement", () => {
-  const result = aggregateProductionRequirements([
-    {
-      componentId: "1",
-      componentName: "MCU",
-      category: "IC",
-      producer: "ST",
-      value: "STM32",
-      references: ["U1"],
-      quantityPerProduct: 1,
-      buildQuantity: 5,
-      safetyStock: 10,
-      leadTime: 14,
-      availableInventory: 20,
-      unitPrice: 1,
-      grossRequirement: 5,
-      netRequirement: 0,
-      grossCost: 5,
-      netCost: 0
-    }
-  ]);
+test("buildMrpRows carries reserved production metadata for UI display", () => {
+  const rows = buildMrpRows(
+    [
+      {
+        component: {
+          id: "1",
+          name: "STM32 MCU",
+          category: "IC",
+          producer: "ST",
+          value: "STM32F4",
+          safety_stock: 5
+        },
+        references: ["U1"],
+        quantity: 1,
+        lead_time: 21,
+        inventory: {
+          id: "inv-1",
+          component_id: "1",
+          quantity_available: 2,
+          purchase_price: 8.2
+        },
+        reserved: {
+          gross_requirement: 6,
+          inventory_consumed: 2,
+          net_requirement: 4,
+          active_production_quantity: 6,
+          active_entry_count: 1
+        }
+      }
+    ],
+    4
+  );
 
-  assert.equal(result[0]?.totalNetRequirement, 0);
-});
-
-test("reserveInventoryForProduction consumes available stock first and leaves remaining net need", () => {
-  const result = reserveInventoryForProduction([
-    {
-      componentId: "1",
-      componentName: "MCU",
-      category: "IC",
-      producer: "ST",
-      value: "STM32",
-      references: ["U1"],
-      quantityPerProduct: 2,
-      buildQuantity: 5,
-      safetyStock: 10,
-      leadTime: 14,
-      availableInventory: 6,
-      unitPrice: 1,
-      grossRequirement: 10,
-      netRequirement: 4,
-      grossCost: 10,
-      netCost: 4
-    }
-  ]);
-
-  assert.equal(result.length, 1);
-  assert.equal(result[0]?.inventoryConsumed, 6);
-  assert.equal(result[0]?.netRequirement, 4);
-  assert.equal(result[0]?.remainingInventory, 0);
+  assert.equal(rows[0]?.reservedInventory, 2);
+  assert.equal(rows[0]?.activeProductionQuantity, 6);
 });

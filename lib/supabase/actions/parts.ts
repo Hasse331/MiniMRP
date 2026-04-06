@@ -281,6 +281,7 @@ export async function updatePartSafetyStockAction(formData: FormData) {
   const supabase = createSupabaseClient();
   const id = requiredValue(formData.get("id"), "Component id");
   const safetyStock = Number(requiredValue(formData.get("safety_stock"), "Safety stock"));
+  const returnTo = optionalValue(formData.get("returnTo"));
   const previous = await supabase
     .from("components")
     .select("id,name,category,producer,value,safety_stock")
@@ -311,6 +312,7 @@ export async function updatePartSafetyStockAction(formData: FormData) {
 
   revalidatePath("/components");
   revalidatePath(`/components/${id}`);
+  revalidatePath("/inventory");
   revalidatePath("/purchasing");
-  redirect("/purchasing");
+  redirect(returnTo ?? "/purchasing");
 }

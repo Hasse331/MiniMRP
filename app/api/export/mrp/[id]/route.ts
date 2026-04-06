@@ -19,14 +19,13 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         producer: row.producer,
         references: row.references.join(", "),
         qty_per_product: row.quantityPerProduct,
-        build_quantity: row.buildQuantity,
         safety_stock: row.safetyStock,
+        available_inventory: row.availableInventory,
+        gross_requirement: row.grossRequirement,
+        net_requirement: row.netRequirement,
         lead_time: row.leadTime,
         unit_price: row.unitPrice,
-        gross_requirement: row.grossRequirement,
         gross_cost: row.grossCost,
-        available_inventory: row.availableInventory,
-        net_requirement: row.netRequirement,
         net_cost: row.netCost
       })),
       {
@@ -35,14 +34,13 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         producer: null,
         references: null,
         qty_per_product: summary.quantityPerProduct,
-        build_quantity: null,
         safety_stock: summary.safetyStock,
+        available_inventory: summary.availableInventory,
+        gross_requirement: summary.grossRequirement,
+        net_requirement: summary.netRequirement,
         lead_time: summary.maxLeadTime,
         unit_price: null,
-        gross_requirement: summary.grossRequirement,
         gross_cost: summary.grossCost,
-        available_inventory: summary.availableInventory,
-        net_requirement: summary.netRequirement,
         net_cost: summary.netCost
       }
     ]

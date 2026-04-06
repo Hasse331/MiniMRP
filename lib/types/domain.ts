@@ -78,16 +78,25 @@ export interface ProductDetail extends Product {
 export interface VersionDetail extends ProductVersion {
   product: Product | null;
   attachments: Attachment[];
+  active_production_quantity: number;
+  active_production_count: number;
   references: Array<{
     reference: string;
     component: ComponentMaster | null;
   }>;
   components: Array<{
     component: ComponentMaster;
-    references: string[];
+    references: string[]; 
     quantity: number;
     lead_time: number | null;
     inventory: InventoryItem | null;
+    reserved?: {
+      gross_requirement: number;
+      inventory_consumed: number;
+      net_requirement: number;
+      active_production_quantity: number;
+      active_entry_count: number;
+    };
   }>;
 }
 
@@ -129,6 +138,8 @@ export interface ProductionEntry {
   id: string;
   version_id: string;
   quantity: number;
+  status: "under_production" | "completed";
+  completed_at: string | null;
   created_at: string;
 }
 

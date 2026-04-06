@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
+import { summarizeReservedRequirements } from "@/lib/mappers/production";
 import type {
   Attachment,
   ComponentMaster,
@@ -6,6 +7,8 @@ import type {
   InventoryItem,
   Product,
   ProductVersion,
+  ProductionEntry,
+  ProductionRequirement,
   Seller,
   VersionDetail
 } from "@/lib/types/domain";
@@ -29,7 +32,7 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
     return { item: null, error: null };
   }
 
-  const [productResult, attachmentsResult, referencesResult, componentsResult, inventoryResult, linksResult, sellersResult] =
+  const [productResult, attachmentsResult, referencesResult, componentsResult, inventoryResult, linksResult, sellersResult, activeProductionEntriesResult] =
     await Promise.all([
       supabase
         .from("products")
@@ -57,13 +60,48 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
       ),
       safeSelect<Seller>(
         supabase.from("sellers").select("id,name,base_url,lead_time")
+      ),
+      safeSelect<ProductionEntry>(
+        supabase
+          .from("production_entries")
+          .select("id,version_id,quantity,status,completed_at,created_at")
+          .eq("version_id", id)
+          .eq("status", "under_production")
       )
     ]);
+
+  const activeProductionEntryIds = activeProductionEntriesResult.data.map((entry) => entry.id);
+  const activeProductionQuantity = activeProductionEntriesResult.data.reduce(
+    (total, entry) => total + entry.quantity,
+    0
+  );
+  const activeProductionCount = activeProductionEntriesResult.data.length;
+  const activeRequirementsResult =
+    activeProductionEntryIds.length > 0
+      ? await safeSelect<ProductionRequirement>(
+          supabase
+            .from("production_requirements")
+            .select("id,production_entry_id,component_id,gross_requirement,inventory_consumed,net_requirement,created_at")
+            .in("production_entry_id", activeProductionEntryIds)
+        )
+      : { data: [] as ProductionRequirement[], error: null as string | null };
 
   const componentMap = new Map(componentsResult.data.map((component) => [component.id, component]));
   const inventoryMap = new Map(inventoryResult.data.map((item) => [item.component_id, item]));
   const sellerMap = new Map(sellersResult.data.map((seller) => [seller.id, seller]));
   const leadTimeMap = new Map<string, number | null>();
+  const productionQuantityMap = new Map(
+    activeProductionEntriesResult.data.map((entry) => [entry.id, entry.quantity])
+  );
+  const reservedSummary = summarizeReservedRequirements(
+    activeRequirementsResult.data.map((item) => ({
+      component_id: item.component_id,
+      gross_requirement: item.gross_requirement,
+      inventory_consumed: item.inventory_consumed,
+      net_requirement: item.net_requirement,
+      quantity: productionQuantityMap.get(item.production_entry_id) ?? 0
+    }))
+  );
 
   for (const link of linksResult.data) {
     const leadTime = sellerMap.get(link.seller_id)?.lead_time ?? null;
@@ -79,7 +117,20 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
 
   const groupedComponents = new Map<
     string,
-    { component: ComponentMaster; references: string[]; quantity: number; lead_time: number | null; inventory: InventoryItem | null }
+    {
+      component: ComponentMaster;
+      references: string[];
+      quantity: number;
+      lead_time: number | null;
+      inventory: InventoryItem | null;
+      reserved: {
+        gross_requirement: number;
+        inventory_consumed: number;
+        net_requirement: number;
+        active_production_quantity: number;
+        active_entry_count: number;
+      };
+    }
   >();
 
   for (const reference of referencesResult.data) {
@@ -98,7 +149,14 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
         references: [reference.reference],
         quantity: 1,
         lead_time: leadTimeMap.get(component.id) ?? null,
-        inventory: inventoryMap.get(component.id) ?? null
+        inventory: inventoryMap.get(component.id) ?? null,
+        reserved: {
+          gross_requirement: reservedSummary[component.id]?.grossRequirement ?? 0,
+          inventory_consumed: reservedSummary[component.id]?.inventoryConsumed ?? 0,
+          net_requirement: reservedSummary[component.id]?.netRequirement ?? 0,
+          active_production_quantity: reservedSummary[component.id]?.activeProductionQuantity ?? 0,
+          active_entry_count: reservedSummary[component.id]?.activeEntryCount ?? 0
+        }
       });
     }
   }
@@ -107,6 +165,8 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
     item: {
       ...versionResult.data,
       product: productResult.data ?? null,
+      active_production_quantity: activeProductionQuantity,
+      active_production_count: activeProductionCount,
       attachments: attachmentsResult.data,
       references: referencesResult.data.map((reference) => ({
         reference: reference.reference,
@@ -123,6 +183,8 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
       componentsResult.error ??
       inventoryResult.error ??
       linksResult.error ??
-      sellersResult.error
+      sellersResult.error ??
+      activeProductionEntriesResult.error ??
+      activeRequirementsResult.error
   };
 }

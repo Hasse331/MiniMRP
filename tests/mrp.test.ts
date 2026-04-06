@@ -5,7 +5,8 @@ import {
   summarizeMrpRows,
   calculateVersionUnitCost,
   calculateWeightedAveragePrice,
-  buildProductionShortageMetrics
+  buildProductionShortageMetrics,
+  calculateProductionLongestLeadTime
 } from "../lib/mappers/mrp.ts";
 
 test("buildMrpRows calculates quantities and costs", () => {
@@ -88,7 +89,8 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       grossRequirement: 10,
       netRequirement: 7,
       grossCost: 15,
-      netCost: 10.5
+      netCost: 10.5,
+      reservedInventory: 2
     },
     {
       componentId: "2",
@@ -106,7 +108,8 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       grossRequirement: 5,
       netRequirement: 0,
       grossCost: 10,
-      netCost: 0
+      netCost: 0,
+      reservedInventory: 1
     }
   ]);
 
@@ -116,6 +119,7 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
   assert.equal(summary.availableInventory, 9);
   assert.equal(summary.grossRequirement, 15);
   assert.equal(summary.netRequirement, 7);
+  assert.equal(summary.reservedInventory, 3);
   assert.equal(summary.grossCost, 25);
   assert.equal(summary.netCost, 10.5);
 });
@@ -138,7 +142,7 @@ test("buildMrpRows carries lead time through to results", () => {
         inventory: {
           id: "inv-1",
           component_id: "1",
-          quantity_available: 10,
+          quantity_available: 1,
           purchase_price: 3.2
         }
       }
@@ -146,6 +150,7 @@ test("buildMrpRows carries lead time through to results", () => {
     3
   );
 
+  assert.equal(rows[0]?.netRequirement, 2);
   assert.equal(rows[0]?.leadTime, 21);
 });
 
@@ -205,4 +210,72 @@ test("buildProductionShortageMetrics keeps net need separate from safety-stock-b
 
   assert.equal(metrics.netNeed, 12);
   assert.equal(metrics.recommendedOrderQuantity, 37);
+});
+
+test("calculateProductionLongestLeadTime ignores covered rows", () => {
+  const longestLeadTime = calculateProductionLongestLeadTime([
+    {
+      componentId: "1",
+      componentName: "Covered part",
+      category: "IC",
+      producer: "X",
+      value: null,
+      references: ["U1"],
+      quantityPerProduct: 1,
+      buildQuantity: 5,
+      safetyStock: 10,
+      leadTime: 21,
+      availableInventory: 10,
+      unitPrice: 1,
+      grossRequirement: 5,
+      netRequirement: 0,
+      grossCost: 5,
+      netCost: 0
+    },
+    {
+      componentId: "2",
+      componentName: "Short part",
+      category: "IC",
+      producer: "Y",
+      value: null,
+      references: ["U2"],
+      quantityPerProduct: 1,
+      buildQuantity: 5,
+      safetyStock: 10,
+      leadTime: 14,
+      availableInventory: 1,
+      unitPrice: 2,
+      grossRequirement: 5,
+      netRequirement: 4,
+      grossCost: 10,
+      netCost: 8
+    }
+  ]);
+
+  assert.equal(longestLeadTime, 14);
+});
+
+test("calculateProductionLongestLeadTime returns zero when all parts are covered by inventory", () => {
+  const longestLeadTime = calculateProductionLongestLeadTime([
+    {
+      componentId: "1",
+      componentName: "Covered part",
+      category: "IC",
+      producer: "X",
+      value: null,
+      references: ["U1"],
+      quantityPerProduct: 1,
+      buildQuantity: 5,
+      safetyStock: 10,
+      leadTime: 21,
+      availableInventory: 10,
+      unitPrice: 1,
+      grossRequirement: 5,
+      netRequirement: 0,
+      grossCost: 5,
+      netCost: 0
+    }
+  ]);
+
+  assert.equal(longestLeadTime, 0);
 });

@@ -43,7 +43,11 @@ export async function getPurchasingOverview(): Promise<{
         .order("created_at", { ascending: false })
     ),
     safeSelect<ProductionEntry>(
-      supabase.from("production_entries").select("id,version_id,quantity,created_at").order("created_at", { ascending: false })
+      supabase
+        .from("production_entries")
+        .select("id,version_id,quantity,status,completed_at,created_at")
+        .eq("status", "under_production")
+        .order("created_at", { ascending: false })
     ),
     safeSelect<ProductVersion>(
       supabase.from("product_versions").select("id,product_id,version_number")
@@ -54,6 +58,7 @@ export async function getPurchasingOverview(): Promise<{
   const componentMap = new Map(componentsResult.data.map((component) => [component.id, component]));
   const sellerMap = new Map(sellersResult.data.map((seller) => [seller.id, seller]));
   const versionMap = new Map(versionsResult.data.map((version) => [version.id, version]));
+  const activeProductionEntryIds = new Set(productionEntriesResult.data.map((entry) => entry.id));
 
   const sellerLinkMap = new Map<
     string,
@@ -92,7 +97,9 @@ export async function getPurchasingOverview(): Promise<{
 
   const aggregatedRequirements = new Map<string, { totalGrossRequirement: number; totalNetRequirement: number }>();
   if (productionRequirementsResult.data.length > 0) {
-    for (const row of productionRequirementsResult.data) {
+    for (const row of productionRequirementsResult.data.filter((item) =>
+      activeProductionEntryIds.has(item.production_entry_id)
+    )) {
       const existing = aggregatedRequirements.get(row.component_id);
       if (existing) {
         existing.totalGrossRequirement += row.gross_requirement;

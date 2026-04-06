@@ -3,7 +3,7 @@ import { getProductionOverview } from "@/lib/supabase/queries/index";
 import { Notice, PageHeader } from "@/shared/ui";
 
 export default async function ProductionPage() {
-  const { items, error } = await getProductionOverview();
+  const { underProduction, completed, error } = await getProductionOverview();
 
   return (
     <div className="page">
@@ -13,7 +13,17 @@ export default async function ProductionPage() {
       />
 
       {error ? <Notice error>{error}</Notice> : null}
-      <ProductionListPanel items={items} />
+      <ProductionListPanel
+        items={underProduction}
+        title="Under production"
+        description="Each row stores a version and quantity currently planned or in progress."
+      />
+      <ProductionListPanel
+        items={completed}
+        title="Completed production"
+        description="Production entries that have been marked ready."
+        completed
+      />
     </div>
   );
 }

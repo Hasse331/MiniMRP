@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { InventoryEditForm } from "@/features/inventory/components/inventory-edit-form";
 import { PartPicker } from "@/features/parts/components/part-picker";
 import {
   addInventoryAction,
-  adjustInventoryDeltaAction,
   deleteInventoryAction
 } from "@/lib/supabase/actions/index";
 import type { ComponentListItem, ComponentMaster, InventoryItem } from "@/lib/types/domain";
@@ -79,25 +79,13 @@ export function InventoryRowsPanel(props: {
                         View
                       </Link>
                       <ModalTrigger buttonLabel="Edit" title={`Adjust stock: ${item.component?.name ?? item.id}`}>
-                        <form action={adjustInventoryDeltaAction} className="stack">
-                          <input type="hidden" name="component_id" value={item.component_id} />
-                          <input type="hidden" name="current_quantity" value={item.quantity_available} />
-                          <div className="small muted">Current quantity: {item.quantity_available}</div>
-                          <div className="field-group">
-                            <label htmlFor={`inventory-mode-${item.id}`}>Action</label>
-                            <select id={`inventory-mode-${item.id}`} className="select" name="mode" defaultValue="add">
-                              <option value="add">Add</option>
-                              <option value="remove">Remove</option>
-                            </select>
-                          </div>
-                          <div className="field-group">
-                            <label htmlFor={`inventory-amount-${item.id}`}>Amount</label>
-                            <input id={`inventory-amount-${item.id}`} className="input" type="number" min="0" step="1" name="amount" placeholder="Enter quantity" />
-                          </div>
-                          <button className="button primary" type="submit">
-                            Update stock
-                          </button>
-                        </form>
+                        <InventoryEditForm
+                          inventoryId={item.id}
+                          componentId={item.component_id}
+                          componentName={item.component?.name ?? item.id}
+                          currentQuantity={item.quantity_available}
+                          currentSafetyStock={item.component?.safety_stock ?? 0}
+                        />
                       </ModalTrigger>
                       <ModalTrigger
                         buttonLabel={

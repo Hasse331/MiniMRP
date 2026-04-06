@@ -13,6 +13,7 @@ export function VersionMrpPanel(props: {
     availableInventory: number;
     grossRequirement: number;
     netRequirement: number;
+    reservedInventory: number;
     grossCost: number;
     netCost: number;
   };
@@ -22,8 +23,8 @@ export function VersionMrpPanel(props: {
       title="MRP result"
       description="Gross requirement is per-product quantity multiplied by build quantity. Net requirement subtracts current available inventory, and Add to production consumes gross requirement from stock immediately."
       actions={
-        <div className="action-row">
-          <form className="action-row">
+        <div className="mrp-actions">
+          <form className="mrp-actions">
             <label className="inline-field" htmlFor="build-quantity">
               <span>Qty</span>
               <input
@@ -63,48 +64,61 @@ export function VersionMrpPanel(props: {
             <thead>
               <tr>
                 <th>Component</th>
+                <th>Category</th>
+                <th>Producer</th>
                 <th>Refs</th>
                 <th>Qty per product</th>
-                <th>Build qty</th>
                 <th>Safety stock</th>
+                <th>Available</th>
+                <th>Gross</th>
+                <th>Net</th>
+                <th>Reserved</th>
                 <th>Lead time</th>
                 <th>Unit price</th>
-                <th>Gross</th>
                 <th>Gross cost</th>
-                <th>Available</th>
-                <th>Net</th>
                 <th>Net cost</th>
               </tr>
             </thead>
             <tbody>
               {props.rows.map((row) => (
                 <tr key={`mrp-${row.componentId}`}>
-                  <td>{row.componentName}</td>
+                  <td>
+                    <div>{row.componentName}</div>
+                    {(row.activeProductionQuantity ?? 0) > 0 ? (
+                      <div className="small muted">
+                        Active production qty {row.activeProductionQuantity ?? 0}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td>{row.category}</td>
+                  <td>{row.producer}</td>
                   <td>{row.references.join(", ")}</td>
                   <td>{row.quantityPerProduct}</td>
-                  <td>{row.buildQuantity}</td>
                   <td>{row.safetyStock}</td>
+                  <td>{row.availableInventory}</td>
+                  <td>{row.grossRequirement}</td>
+                  <td>{row.netRequirement}</td>
+                  <td>{row.reservedInventory ?? 0}</td>
                   <td>{row.leadTime ?? "-"}</td>
                   <td>{row.unitPrice === null ? "-" : row.unitPrice.toFixed(4)}</td>
-                  <td>{row.grossRequirement}</td>
                   <td>{row.grossCost === null ? "-" : row.grossCost.toFixed(4)}</td>
-                  <td>{row.availableInventory}</td>
-                  <td>{row.netRequirement}</td>
                   <td>{row.netCost === null ? "-" : row.netCost.toFixed(4)}</td>
                 </tr>
               ))}
               <tr>
                 <td><strong>Total</strong></td>
-                <td>-</td>
-                <td>{props.summary.quantityPerProduct}</td>
-                <td>-</td>
-                <td>{props.summary.safetyStock}</td>
-                <td>{props.summary.maxLeadTime ?? "-"}</td>
-                <td>-</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
                 <td>{props.summary.grossRequirement}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
                 <td>{props.summary.grossCost.toFixed(4)}</td>
-                <td>{props.summary.availableInventory}</td>
-                <td>{props.summary.netRequirement}</td>
                 <td>{props.summary.netCost.toFixed(4)}</td>
               </tr>
             </tbody>

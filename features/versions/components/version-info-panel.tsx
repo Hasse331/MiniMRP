@@ -26,6 +26,14 @@ export function VersionInfoPanel(props: {
           <span>One unit component cost</span>
           <strong>{unitCost.toFixed(4)}</strong>
         </div>
+        <div className="detail-item">
+          <span>Active production entries</span>
+          <strong>{version?.active_production_count ?? 0}</strong>
+        </div>
+        <div className="detail-item">
+          <span>Reserved production qty</span>
+          <strong>{version?.active_production_quantity ?? 0}</strong>
+        </div>
       </div>
     </Panel>
   );
