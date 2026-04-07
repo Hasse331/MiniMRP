@@ -1,4 +1,4 @@
-# MiniElectronicsMRP
+# MiniMRP
 
 MiniMRP is a small internal MRP (material requirements planning) system for small businesses specializing electronic products. It is designed to manage products, versions, BOMs, components, inventory, production entries, and purchasing needs without the overhead of a full ERP system.
 
@@ -63,6 +63,12 @@ npm install
 ```
 
 2. Add your Supabase keys to `.env`.
+
+Add a demo password as well if you want to protect a public demo deployment:
+
+```bash
+DEMO_ACCESS_PASSWORD=your-demo-password
+```
 
 3. Run the latest schema and seed in Supabase SQL Editor:
 
