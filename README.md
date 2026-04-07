@@ -1,6 +1,8 @@
 # MiniMRP
 
-MiniMRP is a lightweight internal MRP and inventory tool for Spectrum Audio Instruments (SAI). It is built for practical daily use: managing products, versions, BOMs, parts, inventory, production needs, and purchasing shortages without unnecessary complexity.
+MiniMRP is a small internal production planning and inventory application for electronic products. It is designed to manage products, versions, BOMs, components, inventory, production entries, and purchasing needs without the overhead of a full ERP system.
+
+The project is currently at a strong internal demo stage: core product, BOM, inventory, production, purchasing, export, and history flows are implemented, while production-ready authentication, tighter security, and more complete import persistence are still planned for the next phase.
 
 ## Main Features
 
@@ -13,6 +15,18 @@ MiniMRP is a lightweight internal MRP and inventory tool for Spectrum Audio Inst
 - CSV export for BOM, MRP, parts, inventory, and purchasing
 - Import entry points for bulk CSV/Excel workflows
 - Change history for UI-driven updates
+
+## How It Works
+
+From a user perspective, the workflow is intentionally straightforward:
+
+- Start from `Products`, where each product contains one or more versions.
+- Open a version to view its BOM, attachments, unit cost estimate, and material requirements.
+- Manage the shared component catalog in `Components`, including supplier links and safety stock targets.
+- Track current stock in `Inventory` and adjust quantities as material arrives or is consumed.
+- Add versions to `Production` to reserve available inventory and store production-driven material requirements.
+- Review `Purchasing` to see current shortages and parts that are approaching safety stock.
+- Use `History` to inspect changes made through the UI and `Export` actions for CSV handoff workflows.
 
 ## Project Structure
 
@@ -29,7 +43,7 @@ The project is intentionally simple and split by responsibility:
 
 Note about naming: the business domain still uses the `/components` route in the UI, but the internal feature code is named `parts` to avoid confusion with reusable UI components.
 
-## How It Works
+## Technical Structure
 
 - Next.js App Router renders the internal admin UI.
 - Supabase is the backend and source of truth for relational data.
@@ -77,3 +91,4 @@ npm run dev
 - The app redirects `/` to `/products`.
 - Production and purchasing flows depend on the latest Supabase schema being applied.
 - Import UI exists already, while some bulk import persistence flows are still designed to be extended further.
+- This version is suitable for a live internal demo branch, but production rollout still needs stronger import logic, authentication, and security hardening.
