@@ -1,8 +1,8 @@
-# Mass Import Migration
+# Master data imports
 
-This migration format is used to create the initial master component library, seller links, and inventory records in MiniMRP.
+Master data is combining component data, seller data and inventory data. This format is used to add mass data or create the initial master component library, seller links, and inventory records in MiniMRP.
 
-Products, versions, and BOM references are created by UI and imported separately, so this file only covers component master data, seller data, and inventory data.
+Products and versions are created by UI, and BOM references lists are imported separately by using user defined SKUs.
 
 ## Required Columns
 
