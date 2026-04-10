@@ -7,7 +7,7 @@ import { createSupabaseClient } from "../client";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function addProductionEntryAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const quantity = Math.max(Number(requiredValue(formData.get("quantity"), "Quantity")), 1);
   const versionDetail = await getVersionDetail(versionId);
@@ -93,7 +93,7 @@ export async function addProductionEntryAction(formData: FormData) {
 }
 
 export async function cancelProductionEntryAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const productionEntryId = requiredValue(formData.get("production_entry_id"), "Production entry id");
 
   const [entryResult, requirementsResult] = await Promise.all([
@@ -183,7 +183,7 @@ export async function cancelProductionEntryAction(formData: FormData) {
 }
 
 export async function completeProductionEntryAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const productionEntryId = requiredValue(formData.get("production_entry_id"), "Production entry id");
 
   const previous = await supabase

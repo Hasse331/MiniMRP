@@ -9,7 +9,9 @@ import type {
   PurchasingItem,
   Seller
 } from "@/lib/types/domain";
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 import { getVersionDetail } from "./versions";
 
@@ -19,7 +21,8 @@ export async function getPurchasingOverview(): Promise<{
   error: string | null;
 }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const [componentsResult, inventoryResult, linksResult, sellerLinksResult, sellersResult, productionRequirementsResult, productionEntriesResult, versionsResult] = await Promise.all([
     safeSelect<ComponentMaster>(
       supabase.from("components").select("id,name,category,producer,value,safety_stock").order("category").order("name")
@@ -50,7 +53,7 @@ export async function getPurchasingOverview(): Promise<{
         .order("created_at", { ascending: false })
     ),
     safeSelect<ProductVersion>(
-      supabase.from("product_versions").select("id,product_id,version_number")
+      adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")
     )
   ]);
 

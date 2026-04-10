@@ -5,7 +5,7 @@ import { createSupabaseClient } from "../client";
 import { recordHistory, optionalValue, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function addInventoryAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const quantity = Number(requiredValue(formData.get("quantity_available"), "Quantity"));
   const purchasePrice = optionalValue(formData.get("purchase_price"));
@@ -38,7 +38,7 @@ export async function addInventoryAction(formData: FormData) {
 }
 
 export async function adjustInventoryDeltaAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const mode = requiredValue(formData.get("mode"), "Mode") as "add" | "remove";
   const amount = Number(requiredValue(formData.get("amount"), "Amount"));
@@ -73,7 +73,7 @@ export async function adjustInventoryDeltaAction(formData: FormData) {
 }
 
 export async function deleteInventoryAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const id = requiredValue(formData.get("id"), "Inventory id");
   const previous = await supabase
     .from("inventory")

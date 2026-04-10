@@ -14,8 +14,11 @@ export default async function ProductsPage() {
 
       {error ? (
         <Notice error>
-          Supabase query failed. The schema may not be applied yet. Run the SQL in
-          `supabase/schema.sql` and refresh.
+          Supabase query failed. Check that the `supabase/production/` SQL files were applied to this
+          project and that the signed-in user has the `admin` role.
+          <br />
+          <br />
+          Error: {error}
         </Notice>
       ) : null}
 

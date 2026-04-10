@@ -8,7 +8,7 @@ export async function getInventoryOverview(filters?: {
   search?: string;
 }): Promise<{ items: Array<InventoryItem & { component: ComponentMaster | null }>; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const [inventoryResult, componentsResult] = await Promise.all([
     safeSelect<InventoryItem>(
       supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")

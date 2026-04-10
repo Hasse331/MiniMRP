@@ -9,7 +9,9 @@ import type {
   ProductVersion,
   Seller
 } from "@/lib/types/domain";
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
 export async function getPartCatalog(filters?: {
@@ -17,7 +19,8 @@ export async function getPartCatalog(filters?: {
   search?: string;
 }): Promise<{ items: ComponentListItem[]; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const componentsQuery = supabase
     .from("components")
     .select("id,name,category,producer,value,safety_stock")
@@ -40,9 +43,9 @@ export async function getPartCatalog(filters?: {
       supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
     ),
     safeSelect<ComponentReference>(
-      supabase.from("component_references").select("version_id,component_master_id,reference")
+      adminSupabase.schema(PRIVATE_SCHEMA).from(COMPONENT_REFERENCES_TABLE).select("version_id,component_master_id,reference")
     ),
-    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number")),
+    safeSelect<ProductVersion>(adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")),
     safeSelect<Product>(supabase.from("products").select("id,name,image"))
   ]);
 
@@ -93,7 +96,8 @@ export async function getPartCatalog(filters?: {
 
 export async function getPartDetail(id: string): Promise<{ item: ComponentDetail | null; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const componentResult = await supabase
     .from("components")
     .select("id,name,category,producer,value,safety_stock")
@@ -122,13 +126,14 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     ),
     safeSelect<Seller>(supabase.from("sellers").select("id,name,base_url,lead_time")),
     safeSelect<ComponentReference>(
-      supabase
-        .from("component_references")
+      adminSupabase
+        .schema(PRIVATE_SCHEMA)
+        .from(COMPONENT_REFERENCES_TABLE)
         .select("version_id,component_master_id,reference")
         .eq("component_master_id", id)
         .order("reference")
     ),
-    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number")),
+    safeSelect<ProductVersion>(adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")),
     safeSelect<Product>(supabase.from("products").select("id,name,image"))
   ]);
 

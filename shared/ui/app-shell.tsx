@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { startTransition, type ReactNode } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
 
 const navigation = [
   { href: "/products", label: "Products" },
@@ -15,6 +16,11 @@ const navigation = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  if (pathname === "/login") {
+    return <main className="content">{children}</main>;
+  }
 
   return (
     <div className="shell">
@@ -32,6 +38,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
+        <button
+          type="button"
+          onClick={() =>
+            startTransition(async () => {
+              const supabase = createSupabaseBrowserClient();
+              await supabase.auth.signOut();
+              router.replace("/login");
+              router.refresh();
+            })
+          }
+        >
+          Log out
+        </button>
       </aside>
       <main className="content">{children}</main>
     </div>

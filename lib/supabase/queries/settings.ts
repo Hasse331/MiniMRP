@@ -1,12 +1,14 @@
 import { unstable_noStore as noStore } from "next/cache";
 import type { AppSettings } from "@/lib/types/domain";
-import { createSupabaseClient } from "../client";
+import { createSupabaseAdminClient } from "../admin-client";
+import { APP_SETTINGS_TABLE, PRIVATE_SCHEMA } from "../table-names";
 
 export async function getAppSettings(): Promise<{ item: AppSettings | null; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const result = await supabase
-    .from("app_settings")
+    .schema(PRIVATE_SCHEMA)
+    .from(APP_SETTINGS_TABLE)
     .select("id,default_safety_stock")
     .eq("id", true)
     .maybeSingle<AppSettings>();

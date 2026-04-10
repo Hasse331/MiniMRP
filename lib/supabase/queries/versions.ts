@@ -12,14 +12,18 @@ import type {
   Seller,
   VersionDetail
 } from "@/lib/types/domain";
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { ATTACHMENTS_TABLE, COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
 export async function getVersionDetail(id: string): Promise<{ item: VersionDetail | null; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
-  const versionResult = await supabase
-    .from("product_versions")
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
+  const versionResult = await adminSupabase
+    .schema(PRIVATE_SCHEMA)
+    .from(PRODUCT_VERSIONS_TABLE)
     .select("id,product_id,version_number")
     .eq("id", id)
     .maybeSingle<ProductVersion>();
@@ -40,11 +44,12 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
         .eq("id", versionResult.data.product_id)
         .maybeSingle<Product>(),
       safeSelect<Attachment>(
-        supabase.from("attachments").select("id,version_id,file_path").eq("version_id", id)
+        adminSupabase.schema(PRIVATE_SCHEMA).from(ATTACHMENTS_TABLE).select("id,version_id,file_path").eq("version_id", id)
       ),
       safeSelect<ComponentReference>(
-        supabase
-          .from("component_references")
+        adminSupabase
+          .schema(PRIVATE_SCHEMA)
+          .from(COMPONENT_REFERENCES_TABLE)
           .select("version_id,component_master_id,reference")
           .eq("version_id", id)
           .order("reference")

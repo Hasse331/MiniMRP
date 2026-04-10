@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createSupabaseClient } from "../client";
+import { createSupabaseAdminClient } from "../admin-client";
+import { HISTORY_EVENTS_TABLE, PRIVATE_SCHEMA } from "../table-names";
 
 export { revalidatePath, redirect };
 
@@ -13,8 +14,8 @@ export async function recordHistory(args: {
   new_value?: string | null;
 }) {
   try {
-    const supabase = createSupabaseClient();
-    await supabase.from("history_events").insert({
+    const supabase = createSupabaseAdminClient();
+    await supabase.schema(PRIVATE_SCHEMA).from(HISTORY_EVENTS_TABLE).insert({
       entity_type: args.entity_type,
       entity_id: args.entity_id ?? null,
       action_type: args.action_type,

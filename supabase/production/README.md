@@ -26,3 +26,42 @@ Run these files in Supabase SQL Editor in this order:
 - Demo SQL stays under `supabase/live-demo/`.
 - Current application code still needs a later refactor to fully use the `private` schema and authenticated access flow.
 - After creating your first auth user, run the helper in `40_seed_admin_support.sql` to mark that user as the first admin.
+
+## Supabase Auth Checklist
+
+Before connecting the real production app, make sure Supabase has these configured:
+
+- Get the project values:
+  - `Project URL`
+  - `Publishable key` (`sb_publishable_...`)
+  - `Secret key` (`sb_secret_...`) for backend-only access to `private` data
+- Enable `Email` auth provider with email/password sign-in
+- Set `Auth > URL Configuration > Site URL`
+- Add allowed `Redirect URLs` for:
+  - local development
+  - production domain
+- Create the first auth user
+- Run:
+
+```sql
+select private.assign_admin_role('<user-uuid>');
+```
+
+## App Env Checklist
+
+The app will need these environment variables:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
+```
+
+Legacy fallback names can still exist during migration, but production should prefer the publishable and secret key pair.
+
+## Production Reminder
+
+- Never expose `SUPABASE_SECRET_KEY` in the browser
+- `publishable key` is for login, logout, and user-session requests
+- `secret key` is for Next.js backend access to `private` schema data
+- MFA can be enabled later, but auth, redirects, and the first admin bootstrap should be in place before going live

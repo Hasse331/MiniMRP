@@ -1,13 +1,15 @@
 "use server";
 
-import { createSupabaseClient } from "../client";
+import { createSupabaseAdminClient } from "../admin-client";
+import { APP_SETTINGS_TABLE, PRIVATE_SCHEMA } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function updateDefaultSafetyStockAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const value = Number(requiredValue(formData.get("default_safety_stock"), "Default safety stock"));
   const previous = await supabase
-    .from("app_settings")
+    .schema(PRIVATE_SCHEMA)
+    .from(APP_SETTINGS_TABLE)
     .select("id,default_safety_stock")
     .eq("id", true)
     .maybeSingle();
@@ -16,7 +18,7 @@ export async function updateDefaultSafetyStockAction(formData: FormData) {
     throw new Error(previous.error.message);
   }
 
-  const result = await supabase.from("app_settings").upsert({
+  const result = await supabase.schema(PRIVATE_SCHEMA).from(APP_SETTINGS_TABLE).upsert({
     id: true,
     default_safety_stock: value
   });
