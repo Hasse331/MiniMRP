@@ -1,9 +1,9 @@
+import { InventoryAdjustForm } from "@/features/inventory/components/inventory-adjust-form";
 import Link from "next/link";
 import { InventoryEditForm } from "@/features/inventory/components/inventory-edit-form";
 import { PartPicker } from "@/features/parts/components/part-picker";
 import {
-  addInventoryAction,
-  deleteInventoryAction
+  addInventoryAction
 } from "@/lib/supabase/actions/index";
 import type { ComponentListItem, ComponentMaster, InventoryItem } from "@/lib/types/domain";
 import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
@@ -17,7 +17,7 @@ export function InventoryRowsPanel(props: {
   return (
     <Panel
       title="Inventory rows"
-      description="Essential inventory data from the current schema."
+      description="Component-level inventory summary derived from remaining inventory lots."
       actions={
         <ModalTrigger buttonLabel="Add inventory" buttonClassName="button primary" title="Add inventory">
           <form action={addInventoryAction} className="stack">
@@ -32,12 +32,24 @@ export function InventoryRowsPanel(props: {
               componentFieldId="inventory-component"
             />
             <div className="field-group">
-              <label htmlFor="inventory-quantity">Quantity available</label>
-              <input id="inventory-quantity" className="input" type="number" step="1" min="0" name="quantity_available" />
+              <label htmlFor="inventory-quantity">Quantity received</label>
+              <input id="inventory-quantity" className="input" type="number" step="1" min="0" name="quantity_received" required />
             </div>
             <div className="field-group">
-              <label htmlFor="inventory-price">Purchase price</label>
-              <input id="inventory-price" className="input" type="number" step="0.0001" min="0" name="purchase_price" />
+              <label htmlFor="inventory-price">Unit cost</label>
+              <input id="inventory-price" className="input" type="number" step="0.0001" min="0" name="unit_cost" required />
+            </div>
+            <div className="field-group">
+              <label htmlFor="inventory-received-at">Received at</label>
+              <input id="inventory-received-at" className="input" type="datetime-local" name="received_at" />
+            </div>
+            <div className="field-group">
+              <label htmlFor="inventory-source">Source</label>
+              <input id="inventory-source" className="input" name="source" placeholder="Supplier, PO, import" />
+            </div>
+            <div className="field-group">
+              <label htmlFor="inventory-notes">Notes</label>
+              <input id="inventory-notes" className="input" name="notes" placeholder="Optional notes" />
             </div>
             <button className="button primary" type="submit">
               Add inventory
@@ -59,7 +71,7 @@ export function InventoryRowsPanel(props: {
                 <th>Value</th>
                 <th>Safety stock</th>
                 <th>Quantity</th>
-                <th>Purchase price</th>
+                <th>Weighted avg price</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -78,7 +90,16 @@ export function InventoryRowsPanel(props: {
                       <Link className="button-link subtle" href={`/components/${item.component_id}`}>
                         View
                       </Link>
-                      <ModalTrigger buttonLabel="Edit" title={`Adjust stock: ${item.component?.name ?? item.id}`}>
+                      <ModalTrigger buttonLabel="Use stock" title={`Use stock: ${item.component?.name ?? item.id}`}>
+                        <InventoryAdjustForm
+                          componentId={item.component_id}
+                          componentName={item.component?.name ?? item.id}
+                          currentQuantity={item.quantity_available}
+                          returnTo="/inventory"
+                          formId={`inventory-adjust-${item.id}`}
+                        />
+                      </ModalTrigger>
+                      <ModalTrigger buttonLabel="Edit" title={`Update settings: ${item.component?.name ?? item.id}`}>
                         <InventoryEditForm
                           inventoryId={item.id}
                           componentId={item.component_id}
@@ -86,40 +107,6 @@ export function InventoryRowsPanel(props: {
                           currentQuantity={item.quantity_available}
                           currentSafetyStock={item.component?.safety_stock ?? 0}
                         />
-                      </ModalTrigger>
-                      <ModalTrigger
-                        buttonLabel={
-                          <svg
-                            aria-hidden="true"
-                            viewBox="0 0 24 24"
-                            width="16"
-                            height="16"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 6h18" />
-                            <path d="M8 6V4h8v2" />
-                            <path d="M19 6l-1 14H6L5 6" />
-                            <path d="M10 11v6" />
-                            <path d="M14 11v6" />
-                          </svg>
-                        }
-                        buttonAriaLabel={`Delete inventory row for ${item.component?.name ?? item.id}`}
-                        buttonClassName="button danger"
-                        title={`Delete inventory row: ${item.component?.name ?? item.id}?`}
-                      >
-                        <form action={deleteInventoryAction} className="stack">
-                          <input type="hidden" name="id" value={item.id} />
-                          <div className="notice error">
-                            This removes the inventory row for this component.
-                          </div>
-                          <button className="button danger" type="submit">
-                            Confirm delete
-                          </button>
-                        </form>
                       </ModalTrigger>
                     </div>
                   </td>

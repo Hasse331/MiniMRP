@@ -50,7 +50,22 @@ export function AppShell({ children }: { children: ReactNode }) {
               })
             }
           >
-            <span className="nav-icon" aria-hidden="true">{`->`}</span>
+            <span className="nav-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 17l5-5-5-5" />
+                <path d="M15 12H3" />
+                <path d="M21 21V3" />
+              </svg>
+            </span>
             <span>Log out</span>
           </button>
         </nav>

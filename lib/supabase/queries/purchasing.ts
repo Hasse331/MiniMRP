@@ -173,6 +173,7 @@ export async function getPurchasingOverview(): Promise<{
       category: component.category,
       producer: component.producer,
       value: component.value,
+      gross_requirement: totals.totalGrossRequirement,
       safety_stock: component.safety_stock,
       quantity_available: inventoryMap.get(componentId)?.quantity_available ?? 0,
       purchase_price: inventoryMap.get(componentId)?.purchase_price ?? null,
@@ -202,6 +203,7 @@ export async function getPurchasingOverview(): Promise<{
       const sellerLink = sellerLinkMap.get(component.id);
       return {
         ...component,
+        gross_requirement: 0,
         quantity_available: quantityAvailable,
         purchase_price: inventory?.purchase_price ?? null,
         lead_time: leadTimeMap.get(component.id) ?? null,

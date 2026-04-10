@@ -206,7 +206,7 @@ test("buildPurchasingBuckets separates shortages and near-safety components", as
   assert.equal(result.nearSafety[1]?.id, "2");
 });
 
-test("buildProductionShortageMetrics keeps net need separate from safety-stock-based recommended order", () => {
+test("buildProductionShortageMetrics keeps stored net need even when current inventory now covers gross demand", () => {
   const metrics = buildProductionShortageMetrics({
     totalGrossRequirement: 40,
     totalNetRequirement: 12,
@@ -216,6 +216,30 @@ test("buildProductionShortageMetrics keeps net need separate from safety-stock-b
 
   assert.equal(metrics.netNeed, 12);
   assert.equal(metrics.recommendedOrderQuantity, 37);
+});
+
+test("buildProductionShortageMetrics keeps shortage visibility based on stored net requirement", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 40,
+    totalNetRequirement: 12,
+    availableInventory: 35,
+    safetyStock: 25
+  });
+
+  assert.equal(metrics.netNeed, 12);
+  assert.equal(metrics.recommendedOrderQuantity, 30);
+});
+
+test("buildProductionShortageMetrics recommends only safety stock when gross need is already covered but stored net need remains", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 40,
+    totalNetRequirement: 12,
+    availableInventory: 45,
+    safetyStock: 25
+  });
+
+  assert.equal(metrics.netNeed, 12);
+  assert.equal(metrics.recommendedOrderQuantity, 25);
 });
 
 test("calculateProductionLongestLeadTime ignores covered rows", () => {

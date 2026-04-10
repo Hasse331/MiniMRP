@@ -1,9 +1,13 @@
 "use server";
 
 import { buildMrpRows, reserveInventoryForProduction } from "@/lib/mappers/mrp";
+import { consumeInventoryLotsFifo } from "@/lib/mappers/inventory-lots";
 import { getSchemaSetupErrorMessage } from "@/lib/mappers/supabase-errors";
+import type { InventoryLot } from "@/lib/types/domain";
 import { getVersionDetail } from "@/lib/supabase/queries/index";
+import { INVENTORY_LOTS_TABLE } from "../table-names";
 import { createSupabaseClient } from "../client";
+import { syncInventorySummaryForComponent } from "./inventory-summary";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function addProductionEntryAction(formData: FormData) {
@@ -56,20 +60,43 @@ export async function addProductionEntryAction(formData: FormData) {
 
   for (const component of versionDetail.item.components) {
     const reservation = reservedRequirements.find((row) => row.componentId === component.component.id);
-    if (!component.inventory?.id || !reservation) {
+    if (!reservation || reservation.inventoryConsumed <= 0) {
       continue;
     }
 
-    const inventoryUpdate = await supabase
-      .from("inventory")
-      .update({ quantity_available: reservation.remainingInventory })
-      .eq("id", component.inventory.id);
+    const lotsResult = await supabase
+      .from(INVENTORY_LOTS_TABLE)
+      .select("id,component_id,quantity_received,quantity_remaining,unit_cost,received_at,source,notes,created_at")
+      .eq("component_id", component.component.id)
+      .gt("quantity_remaining", 0)
+      .order("received_at", { ascending: true })
+      .order("created_at", { ascending: true });
 
-    if (inventoryUpdate.error) {
+    if (lotsResult.error) {
       await supabase.from("production_requirements").delete().eq("production_entry_id", result.data.id);
       await supabase.from("production_entries").delete().eq("id", result.data.id);
-      throw new Error(inventoryUpdate.error.message);
+      throw new Error(lotsResult.error.message);
     }
+
+    const consumption = consumeInventoryLotsFifo(
+      (lotsResult.data ?? []) as InventoryLot[],
+      reservation.inventoryConsumed
+    );
+
+    for (const lot of consumption.updatedLots) {
+      const inventoryUpdate = await supabase
+        .from(INVENTORY_LOTS_TABLE)
+        .update({ quantity_remaining: lot.quantity_remaining })
+        .eq("id", lot.id);
+
+      if (inventoryUpdate.error) {
+        await supabase.from("production_requirements").delete().eq("production_entry_id", result.data.id);
+        await supabase.from("production_entries").delete().eq("id", result.data.id);
+        throw new Error(inventoryUpdate.error.message);
+      }
+    }
+
+    await syncInventorySummaryForComponent(supabase, component.component.id);
   }
 
   await recordHistory({
@@ -127,7 +154,7 @@ export async function cancelProductionEntryAction(formData: FormData) {
 
     const inventoryResult = await supabase
       .from("inventory")
-      .select("id,quantity_available")
+      .select("id,quantity_available,purchase_price")
       .eq("component_id", requirement.component_id)
       .maybeSingle();
 
@@ -135,27 +162,21 @@ export async function cancelProductionEntryAction(formData: FormData) {
       throw new Error(inventoryResult.error.message);
     }
 
-    if (inventoryResult.data) {
-      const updateResult = await supabase
-        .from("inventory")
-        .update({
-          quantity_available: Number(inventoryResult.data.quantity_available) + requirement.inventory_consumed
-        })
-        .eq("id", inventoryResult.data.id);
+    const lotInsert = await supabase.from(INVENTORY_LOTS_TABLE).insert({
+      component_id: requirement.component_id,
+      quantity_received: requirement.inventory_consumed,
+      quantity_remaining: requirement.inventory_consumed,
+      unit_cost: Number(inventoryResult.data?.purchase_price ?? 0),
+      received_at: new Date().toISOString(),
+      source: "production_cancel",
+      notes: `Returned from cancelled production entry ${productionEntryId}`
+    });
 
-      if (updateResult.error) {
-        throw new Error(updateResult.error.message);
-      }
-    } else {
-      const insertResult = await supabase.from("inventory").insert({
-        component_id: requirement.component_id,
-        quantity_available: requirement.inventory_consumed
-      });
-
-      if (insertResult.error) {
-        throw new Error(insertResult.error.message);
-      }
+    if (lotInsert.error) {
+      throw new Error(lotInsert.error.message);
     }
+
+    await syncInventorySummaryForComponent(supabase, requirement.component_id);
   }
 
   const deleteResult = await supabase.from("production_entries").delete().eq("id", productionEntryId);

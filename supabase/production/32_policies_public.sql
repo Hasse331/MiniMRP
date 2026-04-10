@@ -148,6 +148,36 @@ for delete
 to authenticated
 using (private.is_admin());
 
+drop policy if exists "admin can read inventory lots" on public.inventory_lots;
+drop policy if exists "admin can insert inventory lots" on public.inventory_lots;
+drop policy if exists "admin can update inventory lots" on public.inventory_lots;
+drop policy if exists "admin can delete inventory lots" on public.inventory_lots;
+
+create policy "admin can read inventory lots"
+on public.inventory_lots
+for select
+to authenticated
+using (private.is_admin());
+
+create policy "admin can insert inventory lots"
+on public.inventory_lots
+for insert
+to authenticated
+with check (private.is_admin());
+
+create policy "admin can update inventory lots"
+on public.inventory_lots
+for update
+to authenticated
+using (private.is_admin())
+with check (private.is_admin());
+
+create policy "admin can delete inventory lots"
+on public.inventory_lots
+for delete
+to authenticated
+using (private.is_admin());
+
 drop policy if exists "admin can read production entries" on public.production_entries;
 drop policy if exists "admin can insert production entries" on public.production_entries;
 drop policy if exists "admin can update production entries" on public.production_entries;

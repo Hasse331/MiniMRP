@@ -6,7 +6,7 @@ export function CurrentShortagesPanel(props: { shortages: PurchasingItem[] }) {
   return (
     <Panel
       title="Current shortages"
-      description="Summed production net need per component, with suggested reorder quantity including safety stock."
+      description="Gross requirement shows total active production demand. Net need is the remaining uncovered shortage after current inventory is considered."
     >
       {props.shortages.length === 0 ? (
         <EmptyState>No current shortages.</EmptyState>
@@ -17,6 +17,7 @@ export function CurrentShortagesPanel(props: { shortages: PurchasingItem[] }) {
               <tr>
                 <th>Component</th>
                 <th>Category</th>
+                <th>Gross requirement</th>
                 <th>Available</th>
                 <th>Safety stock</th>
                 <th>Net need</th>
@@ -31,6 +32,7 @@ export function CurrentShortagesPanel(props: { shortages: PurchasingItem[] }) {
                 <tr key={item.id}>
                   <td>{item.name}</td>
                   <td>{item.category}</td>
+                  <td>{item.gross_requirement}</td>
                   <td>{item.quantity_available}</td>
                   <td>{item.safety_stock}</td>
                   <td>{item.net_need}</td>

@@ -35,6 +35,18 @@ create table if not exists public.inventory (
   purchase_price numeric(12,4)
 );
 
+create table if not exists public.inventory_lots (
+  id uuid primary key default gen_random_uuid(),
+  component_id uuid not null references public.components(id) on delete cascade,
+  quantity_received numeric not null check (quantity_received > 0),
+  quantity_remaining numeric not null check (quantity_remaining >= 0 and quantity_remaining <= quantity_received),
+  unit_cost numeric(12,4) not null check (unit_cost >= 0),
+  received_at timestamptz not null default now(),
+  source text,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.production_entries (
   id uuid primary key default gen_random_uuid(),
   version_id uuid not null,

@@ -5,13 +5,14 @@ import type {
   ComponentMaster,
   ComponentReference,
   InventoryItem,
+  InventoryLot,
   Product,
   ProductVersion,
   Seller
 } from "@/lib/types/domain";
 import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
-import { COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
+import { COMPONENT_REFERENCES_TABLE, INVENTORY_LOTS_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
 export async function getPartCatalog(filters?: {
@@ -112,12 +113,20 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     return { item: null, error: null };
   }
 
-  const [inventoryResult, linksResult, sellersResult, referencesResult, versionsResult, productsResult] = await Promise.all([
+  const [inventoryResult, lotsResult, linksResult, sellersResult, referencesResult, versionsResult, productsResult] = await Promise.all([
     supabase
       .from("inventory")
       .select("id,component_id,quantity_available,purchase_price")
       .eq("component_id", id)
       .maybeSingle<InventoryItem>(),
+    safeSelect<InventoryLot>(
+      supabase
+        .from(INVENTORY_LOTS_TABLE)
+        .select("id,component_id,quantity_received,quantity_remaining,unit_cost,received_at,source,notes,created_at")
+        .eq("component_id", id)
+        .order("received_at", { ascending: true })
+        .order("created_at", { ascending: true })
+    ),
     safeSelect<{ component_id: string; seller_id: string; product_url: string | null }>(
       supabase
         .from("component_sellers")
@@ -145,6 +154,7 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     item: {
       ...componentResult.data,
       inventory: inventoryResult.data ?? null,
+      inventory_lots: lotsResult.data,
       sellers: linksResult.data
         .map((link) => {
           const seller = sellerMap.get(link.seller_id);
@@ -161,6 +171,7 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     },
     error:
       inventoryResult.error?.message ??
+      lotsResult.error ??
       linksResult.error ??
       sellersResult.error ??
       referencesResult.error ??

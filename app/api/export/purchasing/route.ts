@@ -12,6 +12,7 @@ export async function GET() {
       category: item.category,
       producer: item.producer,
       value: item.value ?? "",
+      gross_requirement: item.gross_requirement,
       available_inventory: item.quantity_available,
       safety_stock: item.safety_stock,
       net_need: item.net_need,

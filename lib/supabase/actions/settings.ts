@@ -1,8 +1,9 @@
 "use server";
 
 import { parseSpreadsheetFile, normalizeMasterDataRows } from "@/lib/import/master-data";
+import { syncInventorySummariesForComponents } from "./inventory-summary";
 import { createSupabaseAdminClient } from "../admin-client";
-import { APP_SETTINGS_TABLE, PRIVATE_SCHEMA } from "../table-names";
+import { APP_SETTINGS_TABLE, INVENTORY_LOTS_TABLE, PRIVATE_SCHEMA } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function updateDefaultSafetyStockAction(formData: FormData) {
@@ -162,7 +163,7 @@ export async function importMasterDataAction(formData: FormData) {
     sellerIdByName.set(insertResult.data.name, insertResult.data.id);
   }
 
-  const inventoryRows = Array.from(
+  const inventoryLotRows = Array.from(
     new Map(
       parsedRows.map((row) => {
         const componentId = componentIdBySku.get(row.component_sku);
@@ -174,20 +175,22 @@ export async function importMasterDataAction(formData: FormData) {
           componentId,
           {
             component_id: componentId,
-            quantity_available: row.inventory_quantity_available,
-            purchase_price: row.inventory_purchase_price
+            quantity_received: row.inventory_quantity_available,
+            quantity_remaining: row.inventory_quantity_available,
+            unit_cost: row.inventory_purchase_price,
+            source: row.seller_name,
+            notes: `Master data import from ${file.name}`
           }
         ];
       })
     ).values()
   );
 
-  const inventoryUpsert = await supabase.from("inventory").upsert(inventoryRows, {
-    onConflict: "component_id"
-  });
-
-  if (inventoryUpsert.error) {
-    throw new Error(inventoryUpsert.error.message);
+  if (inventoryLotRows.length > 0) {
+    const inventoryLotsInsert = await supabase.from(INVENTORY_LOTS_TABLE).insert(inventoryLotRows);
+    if (inventoryLotsInsert.error) {
+      throw new Error(inventoryLotsInsert.error.message);
+    }
   }
 
   const componentSellerRows = parsedRows.map((row) => {
@@ -212,6 +215,11 @@ export async function importMasterDataAction(formData: FormData) {
   if (sellerLinksUpsert.error) {
     throw new Error(sellerLinksUpsert.error.message);
   }
+
+  await syncInventorySummariesForComponents(
+    supabase,
+    componentRows.map((row) => componentIdBySku.get(row.sku)).filter((value): value is string => Boolean(value))
+  );
 
   await recordHistory({
     entity_type: "master_data_import",

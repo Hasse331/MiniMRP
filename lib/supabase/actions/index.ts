@@ -1,4 +1,9 @@
-export { addInventoryAction, adjustInventoryDeltaAction, deleteInventoryAction } from "./inventory";
+export {
+  addInventoryAction,
+  adjustInventoryDeltaAction,
+  deleteInventoryLotAction,
+  updateInventoryLotAction
+} from "./inventory";
 export {
   createPartAction,
   createSellerForPartAction,

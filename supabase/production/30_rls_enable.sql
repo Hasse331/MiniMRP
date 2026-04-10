@@ -3,6 +3,7 @@ alter table public.components enable row level security;
 alter table public.sellers enable row level security;
 alter table public.component_sellers enable row level security;
 alter table public.inventory enable row level security;
+alter table public.inventory_lots enable row level security;
 alter table public.production_entries enable row level security;
 alter table public.production_requirements enable row level security;
 
@@ -18,6 +19,7 @@ alter table public.components force row level security;
 alter table public.sellers force row level security;
 alter table public.component_sellers force row level security;
 alter table public.inventory force row level security;
+alter table public.inventory_lots force row level security;
 alter table public.production_entries force row level security;
 alter table public.production_requirements force row level security;
 

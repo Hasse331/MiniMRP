@@ -46,6 +46,18 @@ export interface InventoryItem {
   purchase_price: number | null;
 }
 
+export interface InventoryLot {
+  id: string;
+  component_id: string;
+  quantity_received: number;
+  quantity_remaining: number;
+  unit_cost: number;
+  received_at: string;
+  source: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface HistoryEvent {
   id: string;
   entity_type: string;
@@ -112,6 +124,7 @@ export interface ComponentListItem extends ComponentMaster {
 
 export interface ComponentDetail extends ComponentMaster {
   inventory: InventoryItem | null;
+  inventory_lots: InventoryLot[];
   sellers: Array<{
     seller: Seller;
     product_url: string | null;
@@ -124,6 +137,7 @@ export interface ComponentDetail extends ComponentMaster {
 }
 
 export interface PurchasingItem extends ComponentMaster {
+  gross_requirement: number;
   quantity_available: number;
   purchase_price: number | null;
   lead_time: number | null;

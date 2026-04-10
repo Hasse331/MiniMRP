@@ -6,6 +6,8 @@ create index if not exists component_sellers_component_id_idx on public.componen
 create index if not exists component_sellers_seller_id_idx on public.component_sellers(seller_id);
 
 create index if not exists inventory_component_id_idx on public.inventory(component_id);
+create index if not exists inventory_lots_component_id_idx on public.inventory_lots(component_id);
+create index if not exists inventory_lots_component_received_at_idx on public.inventory_lots(component_id, received_at asc, created_at asc);
 
 alter table public.production_entries
 drop constraint if exists production_entries_version_id_fkey;
