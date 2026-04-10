@@ -12,14 +12,18 @@ export default function LoginPage() {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="page" style={{ maxWidth: 420, margin: "6rem auto" }}>
-      <header className="page-header">
-        <h1>MiniMRP Login</h1>
-        <p>Sign in with your admin account to access the internal MRP workspace.</p>
-      </header>
+    <div className="login-shell">
+      <section className="login-copy">
+        <span className="login-eyebrow">MiniMRP Internal Access</span>
+        <h1>Sign in to the admin workspace</h1>
+        <p>
+          Use your admin account to access products, BOM structures, inventory, purchasing, and
+          production views.
+        </p>
+      </section>
 
       <form
-        className="panel"
+        className="panel login-panel"
         onSubmit={(event) => {
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
@@ -45,23 +49,36 @@ export default function LoginPage() {
           });
         }}
       >
-        <label style={{ display: "grid", gap: 6, marginBottom: 16 }}>
-          <span>Email</span>
-          <input name="email" type="email" autoComplete="email" required />
-        </label>
+        <div className="panel-header">
+          <div>
+            <h3>Admin login</h3>
+            <p className="small">Protected internal access for MiniMRP.</p>
+          </div>
+        </div>
 
-        <label style={{ display: "grid", gap: 6, marginBottom: 16 }}>
-          <span>Password</span>
-          <input name="password" type="password" autoComplete="current-password" required />
-        </label>
+        <div className="panel-body stack">
+          <label className="field-group">
+            <span>Email</span>
+            <input className="input" name="email" type="email" autoComplete="email" required />
+          </label>
 
-        {error ? (
-          <p style={{ color: "#b42318", marginBottom: 16 }}>{error}</p>
-        ) : null}
+          <label className="field-group">
+            <span>Password</span>
+            <input
+              className="input"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </label>
 
-        <button type="submit" disabled={isPending}>
-          {isPending ? "Signing in..." : "Sign in"}
-        </button>
+          {error ? <div className="notice error">{error}</div> : null}
+
+          <button className="button primary login-submit" type="submit" disabled={isPending}>
+            {isPending ? "Signing in..." : "Sign in"}
+          </button>
+        </div>
       </form>
     </div>
   );

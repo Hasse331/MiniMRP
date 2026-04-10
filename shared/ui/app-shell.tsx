@@ -37,20 +37,24 @@ export function AppShell({ children }: { children: ReactNode }) {
               {item.label}
             </Link>
           ))}
+          <button
+            type="button"
+            className="nav-action"
+            onClick={() =>
+              startTransition(async () => {
+                const supabase = createSupabaseBrowserClient();
+                await supabase.auth.signOut();
+                router.replace("/login");
+                router.refresh();
+              })
+            }
+          >
+            <span className="nav-icon" aria-hidden="true">
+              ↪
+            </span>
+            <span>Log out</span>
+          </button>
         </nav>
-        <button
-          type="button"
-          onClick={() =>
-            startTransition(async () => {
-              const supabase = createSupabaseBrowserClient();
-              await supabase.auth.signOut();
-              router.replace("/login");
-              router.refresh();
-            })
-          }
-        >
-          Log out
-        </button>
       </aside>
       <main className="content">{children}</main>
     </div>

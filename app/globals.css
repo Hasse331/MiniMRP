@@ -73,14 +73,87 @@ select {
   color: var(--muted);
 }
 
+.nav-action {
+  min-height: 40px;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
 .nav a.active,
-.nav a:hover {
+.nav a:hover,
+.nav-action:hover {
   background: var(--accent-soft);
   color: var(--accent);
 }
 
+.nav-icon {
+  width: 18px;
+  display: inline-flex;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
 .content {
   padding: 24px;
+}
+
+.login-shell {
+  min-height: calc(100vh - 48px);
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 420px);
+  gap: 24px;
+  align-items: center;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.login-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.login-copy h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.login-copy p {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.login-eyebrow {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.login-panel {
+  overflow: hidden;
+}
+
+.login-submit {
+  width: 100%;
 }
 
 .page {
@@ -396,5 +469,12 @@ th {
 
   .two-column {
     grid-template-columns: 1fr;
+  }
+
+  .login-shell {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    padding-top: 24px;
   }
 }
