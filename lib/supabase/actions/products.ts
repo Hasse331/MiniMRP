@@ -1,15 +1,47 @@
 "use server";
 
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
+export async function createProductAction(formData: FormData) {
+  const supabase = await createSupabaseClient();
+  const name = requiredValue(formData.get("name"), "Product name");
+
+  const result = await supabase
+    .from("products")
+    .insert({
+      name,
+      image: null
+    })
+    .select("id,name,image")
+    .single<{ id: string; name: string; image: string | null }>();
+
+  if (result.error || !result.data) {
+    throw new Error(result.error?.message ?? "Could not create product.");
+  }
+
+  await recordHistory({
+    entity_type: "product",
+    entity_id: result.data.id,
+    action_type: "create",
+    summary: `Created product "${name}"`,
+    new_value: stringifyHistoryValue(result.data)
+  });
+
+  revalidatePath("/products");
+  redirect(`/products/${result.data.id}`);
+}
+
 export async function createVersionAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const productId = requiredValue(formData.get("product_id"), "Product id");
   const versionNumber = requiredValue(formData.get("version_number"), "Version number");
 
   const result = await supabase
-    .from("product_versions")
+    .schema(PRIVATE_SCHEMA)
+    .from(PRODUCT_VERSIONS_TABLE)
     .insert({
       product_id: productId,
       version_number: versionNumber
@@ -34,7 +66,7 @@ export async function createVersionAction(formData: FormData) {
 }
 
 export async function updateProductAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
   const id = requiredValue(formData.get("id"), "Product id");
   const name = requiredValue(formData.get("name"), "Product name");
   const previous = await supabase.from("products").select("id,name,image").eq("id", id).maybeSingle();

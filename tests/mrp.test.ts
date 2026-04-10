@@ -15,6 +15,7 @@ test("buildMrpRows calculates quantities and costs", () => {
       {
         component: {
           id: "1",
+          sku: "RES-10K-0603",
           name: "Resistor",
           category: "Resistor",
           producer: "Yageo",
@@ -37,6 +38,8 @@ test("buildMrpRows calculates quantities and costs", () => {
 
   assert.equal(rows[0]?.grossRequirement, 8);
   assert.equal(rows[0]?.netRequirement, 5);
+  assert.equal(rows[0]?.reservedForThisCalculation, 3);
+  assert.equal(rows[0]?.reservedForEntry, null);
   assert.equal(rows[0]?.grossCost, 4);
   assert.equal(rows[0]?.netCost, 2.5);
 });
@@ -46,6 +49,7 @@ test("calculateVersionUnitCost sums one product cost", () => {
     {
         component: {
           id: "1",
+          sku: "CAP-100NF-0603",
           name: "Cap",
           category: "Capacitor",
           producer: "Murata",
@@ -75,6 +79,7 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
   const summary = summarizeMrpRows([
     {
       componentId: "1",
+      sku: "SKU-1",
       componentName: "A",
       category: "IC",
       producer: "X",
@@ -90,10 +95,13 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       netRequirement: 7,
       grossCost: 15,
       netCost: 10.5,
+      reservedForThisCalculation: 3,
+      reservedForEntry: 2,
       reservedInventory: 2
     },
     {
       componentId: "2",
+      sku: "SKU-2",
       componentName: "B",
       category: "IC",
       producer: "Y",
@@ -109,6 +117,8 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       netRequirement: 0,
       grossCost: 10,
       netCost: 0,
+      reservedForThisCalculation: 5,
+      reservedForEntry: null,
       reservedInventory: 1
     }
   ]);
@@ -130,6 +140,7 @@ test("buildMrpRows carries lead time through to results", () => {
       {
         component: {
           id: "1",
+          sku: "MCU-STM32F4",
           name: "MCU",
           category: "IC",
           producer: "ST",
@@ -160,6 +171,7 @@ test("buildPurchasingBuckets separates shortages and near-safety components", as
   const result = buildPurchasingBuckets([
     {
       id: "1",
+      sku: "IC-LOW-STOCK",
       name: "Low stock IC",
       category: "IC",
       producer: "TI",
@@ -171,6 +183,7 @@ test("buildPurchasingBuckets separates shortages and near-safety components", as
     },
     {
       id: "2",
+      sku: "CAP-NEAR-STOCK",
       name: "Near stock cap",
       category: "Capacitor",
       producer: "Murata",
@@ -182,6 +195,7 @@ test("buildPurchasingBuckets separates shortages and near-safety components", as
     },
     {
       id: "3",
+      sku: "RES-HEALTHY",
       name: "Healthy resistor",
       category: "Resistor",
       producer: "Yageo",
@@ -200,7 +214,7 @@ test("buildPurchasingBuckets separates shortages and near-safety components", as
   assert.equal(result.nearSafety[1]?.id, "2");
 });
 
-test("buildProductionShortageMetrics keeps net need separate from safety-stock-based recommended order", () => {
+test("buildProductionShortageMetrics keeps stored net need even when current inventory now covers gross demand", () => {
   const metrics = buildProductionShortageMetrics({
     totalGrossRequirement: 40,
     totalNetRequirement: 12,
@@ -209,13 +223,50 @@ test("buildProductionShortageMetrics keeps net need separate from safety-stock-b
   });
 
   assert.equal(metrics.netNeed, 12);
-  assert.equal(metrics.recommendedOrderQuantity, 37);
+  assert.equal(metrics.recommendedOrderQuantity, 25);
+});
+
+test("buildProductionShortageMetrics keeps shortage visibility based on stored net requirement", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 40,
+    totalNetRequirement: 12,
+    availableInventory: 35,
+    safetyStock: 25
+  });
+
+  assert.equal(metrics.netNeed, 12);
+  assert.equal(metrics.recommendedOrderQuantity, 25);
+});
+
+test("buildProductionShortageMetrics recommends only safety stock when gross need is already covered but stored net need remains", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 40,
+    totalNetRequirement: 12,
+    availableInventory: 45,
+    safetyStock: 25
+  });
+
+  assert.equal(metrics.netNeed, 12);
+  assert.equal(metrics.recommendedOrderQuantity, 25);
+});
+
+test("buildProductionShortageMetrics subtracts currently available stock from recommended order", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 200,
+    totalNetRequirement: 100,
+    availableInventory: 16,
+    safetyStock: 40
+  });
+
+  assert.equal(metrics.netNeed, 100);
+  assert.equal(metrics.recommendedOrderQuantity, 124);
 });
 
 test("calculateProductionLongestLeadTime ignores covered rows", () => {
   const longestLeadTime = calculateProductionLongestLeadTime([
     {
       componentId: "1",
+      sku: "SKU-1",
       componentName: "Covered part",
       category: "IC",
       producer: "X",
@@ -230,10 +281,13 @@ test("calculateProductionLongestLeadTime ignores covered rows", () => {
       grossRequirement: 5,
       netRequirement: 0,
       grossCost: 5,
-      netCost: 0
+      netCost: 0,
+      reservedForThisCalculation: 5,
+      reservedForEntry: null
     },
     {
       componentId: "2",
+      sku: "SKU-2",
       componentName: "Short part",
       category: "IC",
       producer: "Y",
@@ -248,7 +302,9 @@ test("calculateProductionLongestLeadTime ignores covered rows", () => {
       grossRequirement: 5,
       netRequirement: 4,
       grossCost: 10,
-      netCost: 8
+      netCost: 8,
+      reservedForThisCalculation: 1,
+      reservedForEntry: null
     }
   ]);
 
@@ -259,6 +315,7 @@ test("calculateProductionLongestLeadTime returns zero when all parts are covered
   const longestLeadTime = calculateProductionLongestLeadTime([
     {
       componentId: "1",
+      sku: "SKU-1",
       componentName: "Covered part",
       category: "IC",
       producer: "X",
@@ -273,7 +330,9 @@ test("calculateProductionLongestLeadTime returns zero when all parts are covered
       grossRequirement: 5,
       netRequirement: 0,
       grossCost: 5,
-      netCost: 0
+      netCost: 0,
+      reservedForThisCalculation: 5,
+      reservedForEntry: null
     }
   ]);
 

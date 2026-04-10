@@ -1,17 +1,18 @@
 "use server";
 
 import { normalizeReferencesInput } from "@/lib/mappers/bom";
-import { createSupabaseClient } from "../client";
+import { createSupabaseAdminClient } from "../admin-client";
+import { COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function attachPartToVersionAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const references = normalizeReferencesInput(formData.get("references"));
 
   for (const reference of references) {
-    const result = await supabase.from("component_references").upsert(
+    const result = await supabase.schema(PRIVATE_SCHEMA).from(COMPONENT_REFERENCES_TABLE).upsert(
       {
         version_id: versionId,
         component_master_id: componentId,
@@ -38,11 +39,12 @@ export async function attachPartToVersionAction(formData: FormData) {
 }
 
 export async function removePartFromVersionAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const previous = await supabase
-    .from("component_references")
+    .schema(PRIVATE_SCHEMA)
+    .from(COMPONENT_REFERENCES_TABLE)
     .select("version_id,component_master_id,reference")
     .eq("version_id", versionId)
     .eq("component_master_id", componentId);
@@ -52,7 +54,8 @@ export async function removePartFromVersionAction(formData: FormData) {
   }
 
   const result = await supabase
-    .from("component_references")
+    .schema(PRIVATE_SCHEMA)
+    .from(COMPONENT_REFERENCES_TABLE)
     .delete()
     .eq("version_id", versionId)
     .eq("component_master_id", componentId);
@@ -74,11 +77,12 @@ export async function removePartFromVersionAction(formData: FormData) {
 }
 
 export async function updateVersionAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Version id");
   const versionNumber = requiredValue(formData.get("version_number"), "Version number");
   const previous = await supabase
-    .from("product_versions")
+    .schema(PRIVATE_SCHEMA)
+    .from(PRODUCT_VERSIONS_TABLE)
     .select("id,product_id,version_number")
     .eq("id", id)
     .maybeSingle();
@@ -87,7 +91,8 @@ export async function updateVersionAction(formData: FormData) {
   }
 
   const result = await supabase
-    .from("product_versions")
+    .schema(PRIVATE_SCHEMA)
+    .from(PRODUCT_VERSIONS_TABLE)
     .update({ version_number: versionNumber })
     .eq("id", id);
   if (result.error) {
@@ -108,11 +113,12 @@ export async function updateVersionAction(formData: FormData) {
 }
 
 export async function deleteVersionAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Version id");
   const productId = requiredValue(formData.get("product_id"), "Product id");
   const previous = await supabase
-    .from("product_versions")
+    .schema(PRIVATE_SCHEMA)
+    .from(PRODUCT_VERSIONS_TABLE)
     .select("id,product_id,version_number")
     .eq("id", id)
     .maybeSingle();
@@ -120,7 +126,7 @@ export async function deleteVersionAction(formData: FormData) {
     throw new Error(previous.error.message);
   }
 
-  const result = await supabase.from("product_versions").delete().eq("id", id);
+  const result = await supabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).delete().eq("id", id);
   if (result.error) {
     throw new Error(result.error.message);
   }

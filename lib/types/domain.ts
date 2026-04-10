@@ -12,6 +12,7 @@ export interface ProductVersion {
 
 export interface ComponentMaster {
   id: string;
+  sku: string;
   name: string;
   category: string;
   producer: string;
@@ -43,6 +44,18 @@ export interface InventoryItem {
   component_id: string;
   quantity_available: number;
   purchase_price: number | null;
+}
+
+export interface InventoryLot {
+  id: string;
+  component_id: string;
+  quantity_received: number;
+  quantity_remaining: number;
+  unit_cost: number;
+  received_at: string;
+  source: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface HistoryEvent {
@@ -94,6 +107,7 @@ export interface VersionDetail extends ProductVersion {
       gross_requirement: number;
       inventory_consumed: number;
       net_requirement: number;
+      entry_inventory_consumed: number | null;
       active_production_quantity: number;
       active_entry_count: number;
     };
@@ -111,6 +125,7 @@ export interface ComponentListItem extends ComponentMaster {
 
 export interface ComponentDetail extends ComponentMaster {
   inventory: InventoryItem | null;
+  inventory_lots: InventoryLot[];
   sellers: Array<{
     seller: Seller;
     product_url: string | null;
@@ -123,6 +138,8 @@ export interface ComponentDetail extends ComponentMaster {
 }
 
 export interface PurchasingItem extends ComponentMaster {
+  gross_requirement: number;
+  reserved_inventory: number;
   quantity_available: number;
   purchase_price: number | null;
   lead_time: number | null;

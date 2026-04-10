@@ -1,4 +1,9 @@
-export { addInventoryAction, adjustInventoryDeltaAction, deleteInventoryAction } from "./inventory";
+export {
+  addInventoryAction,
+  adjustInventoryDeltaAction,
+  deleteInventoryLotAction,
+  updateInventoryLotAction
+} from "./inventory";
 export {
   createPartAction,
   createSellerForPartAction,
@@ -7,13 +12,13 @@ export {
   updatePartSafetyStockAction,
   upsertPartSellerLinkAction
 } from "./parts";
-export { createVersionAction, updateProductAction } from "./products";
+export { createProductAction, createVersionAction, updateProductAction } from "./products";
 export {
   addProductionEntryAction,
   cancelProductionEntryAction,
   completeProductionEntryAction
 } from "./production";
-export { updateDefaultSafetyStockAction } from "./settings";
+export { importMasterDataAction, updateDefaultSafetyStockAction } from "./settings";
 export {
   attachPartToVersionAction,
   deleteVersionAction,

@@ -15,12 +15,14 @@ export function PartPicker(props: {
   componentFieldId?: string;
   componentFieldName?: string;
   componentLabel?: string;
+  required?: boolean;
 }) {
   const [category, setCategory] = useState("all");
   const categoryFieldId = props.categoryFieldId ?? "part-category-filter";
   const componentFieldId = props.componentFieldId ?? "part-id";
   const componentFieldName = props.componentFieldName ?? "component_id";
   const componentLabel = props.componentLabel ?? "Component";
+  const isRequired = props.required ?? true;
 
   const categories = Array.from(new Set(props.parts.map((part) => part.category))).sort();
   const filteredParts = props.parts.filter((part) =>
@@ -52,6 +54,7 @@ export function PartPicker(props: {
           className="select"
           name={componentFieldName}
           defaultValue=""
+          required={isRequired}
         >
           <option value="" disabled>
             Select component

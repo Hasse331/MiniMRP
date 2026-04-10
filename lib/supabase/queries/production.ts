@@ -1,7 +1,9 @@
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product, ProductVersion, ProductionEntry, ProductionListItem } from "@/lib/types/domain";
 import { buildMrpRows, calculateProductionLongestLeadTime } from "@/lib/mappers/mrp";
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 import { getVersionDetail } from "./versions";
 
@@ -11,7 +13,8 @@ export async function getProductionOverview(): Promise<{
   error: string | null;
 }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const [entriesResult, versionsResult, productsResult] = await Promise.all([
     safeSelect<ProductionEntry>(
       supabase
@@ -20,7 +23,7 @@ export async function getProductionOverview(): Promise<{
         .order("created_at", { ascending: false })
     ),
     safeSelect<ProductVersion>(
-      supabase.from("product_versions").select("id,product_id,version_number")
+      adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")
     ),
     safeSelect<Product>(
       supabase.from("products").select("id,name,image")

@@ -1,16 +1,19 @@
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product, ProductDetail, ProductListItem, ProductVersion } from "@/lib/types/domain";
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
 export async function getProductList(): Promise<{ items: ProductListItem[]; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const productsResult = await safeSelect<Product>(
     supabase.from("products").select("id,name,image").order("name")
   );
   const versionsResult = await safeSelect<ProductVersion>(
-    supabase.from("product_versions").select("id,product_id,version_number")
+    adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")
   );
 
   const items = productsResult.data.map((product) => ({
@@ -26,7 +29,8 @@ export async function getProductList(): Promise<{ items: ProductListItem[]; erro
 
 export async function getProductDetail(id: string): Promise<{ item: ProductDetail | null; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const productResult = await supabase
     .from("products")
     .select("id,name,image")
@@ -42,8 +46,9 @@ export async function getProductDetail(id: string): Promise<{ item: ProductDetai
   }
 
   const versionsResult = await safeSelect<ProductVersion>(
-    supabase
-      .from("product_versions")
+    adminSupabase
+      .schema(PRIVATE_SCHEMA)
+      .from(PRODUCT_VERSIONS_TABLE)
       .select("id,product_id,version_number")
       .eq("product_id", id)
       .order("version_number")

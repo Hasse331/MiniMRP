@@ -4,6 +4,7 @@ type VersionComponent = VersionDetail["components"][number];
 
 export interface MrpRow {
   componentId: string;
+  sku: string;
   componentName: string;
   category: string;
   producer: string;
@@ -19,6 +20,8 @@ export interface MrpRow {
   netRequirement: number;
   grossCost: number | null;
   netCost: number | null;
+  reservedForThisCalculation: number;
+  reservedForEntry: number | null;
   reservedInventory?: number;
   activeProductionQuantity?: number;
 }
@@ -75,11 +78,13 @@ export function buildMrpRows(components: VersionComponent[], buildQuantity: numb
     const availableInventory = row.inventory?.quantity_available ?? 0;
     const safetyStock = row.component.safety_stock ?? 0;
     const netRequirement = Math.max(grossRequirement - availableInventory, 0);
+    const reservedForThisCalculation = Math.min(availableInventory, grossRequirement);
     const grossCost = unitPrice === null ? null : roundCurrency(grossRequirement * unitPrice);
     const netCost = unitPrice === null ? null : roundCurrency(netRequirement * unitPrice);
 
     return {
       componentId: row.component.id,
+      sku: row.component.sku,
       componentName: row.component.name,
       category: row.component.category,
       producer: row.component.producer,
@@ -95,6 +100,8 @@ export function buildMrpRows(components: VersionComponent[], buildQuantity: numb
       netRequirement,
       grossCost,
       netCost,
+      reservedForThisCalculation,
+      reservedForEntry: row.reserved?.entry_inventory_consumed ?? null,
       reservedInventory: row.reserved?.inventory_consumed ?? 0,
       activeProductionQuantity: row.reserved?.active_production_quantity ?? 0
     };
@@ -213,9 +220,13 @@ export function buildProductionShortageMetrics(input: {
   availableInventory: number;
   safetyStock: number;
 }) {
+  const currentNetNeed = Math.max(input.totalNetRequirement, 0);
+  const recommendedOrderQuantity =
+    currentNetNeed > 0 ? Math.max(currentNetNeed - input.availableInventory, 0) + input.safetyStock : 0;
+
   return {
-    netNeed: input.totalNetRequirement,
-    recommendedOrderQuantity: input.totalNetRequirement + input.safetyStock
+    netNeed: currentNetNeed,
+    recommendedOrderQuantity
   };
 }
 

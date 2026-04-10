@@ -5,11 +5,14 @@ import type {
   ComponentMaster,
   ComponentReference,
   InventoryItem,
+  InventoryLot,
   Product,
   ProductVersion,
   Seller
 } from "@/lib/types/domain";
+import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { COMPONENT_REFERENCES_TABLE, INVENTORY_LOTS_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
 export async function getPartCatalog(filters?: {
@@ -17,10 +20,11 @@ export async function getPartCatalog(filters?: {
   search?: string;
 }): Promise<{ items: ComponentListItem[]; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const componentsQuery = supabase
     .from("components")
-    .select("id,name,category,producer,value,safety_stock")
+    .select("id,sku,name,category,producer,value,safety_stock")
     .order("category")
     .order("name");
 
@@ -30,7 +34,7 @@ export async function getPartCatalog(filters?: {
 
   if (filters?.search) {
     componentsQuery.or(
-      `name.ilike.%${filters.search}%,producer.ilike.%${filters.search}%,value.ilike.%${filters.search}%`
+      `sku.ilike.%${filters.search}%,name.ilike.%${filters.search}%,producer.ilike.%${filters.search}%,value.ilike.%${filters.search}%`
     );
   }
 
@@ -40,9 +44,9 @@ export async function getPartCatalog(filters?: {
       supabase.from("inventory").select("id,component_id,quantity_available,purchase_price")
     ),
     safeSelect<ComponentReference>(
-      supabase.from("component_references").select("version_id,component_master_id,reference")
+      adminSupabase.schema(PRIVATE_SCHEMA).from(COMPONENT_REFERENCES_TABLE).select("version_id,component_master_id,reference")
     ),
-    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number")),
+    safeSelect<ProductVersion>(adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")),
     safeSelect<Product>(supabase.from("products").select("id,name,image"))
   ]);
 
@@ -93,10 +97,11 @@ export async function getPartCatalog(filters?: {
 
 export async function getPartDetail(id: string): Promise<{ item: ComponentDetail | null; error: string | null }> {
   noStore();
-  const supabase = createSupabaseClient();
+  const supabase = await createSupabaseClient();
+  const adminSupabase = createSupabaseAdminClient();
   const componentResult = await supabase
     .from("components")
-    .select("id,name,category,producer,value,safety_stock")
+    .select("id,sku,name,category,producer,value,safety_stock")
     .eq("id", id)
     .maybeSingle<ComponentMaster>();
 
@@ -108,12 +113,20 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     return { item: null, error: null };
   }
 
-  const [inventoryResult, linksResult, sellersResult, referencesResult, versionsResult, productsResult] = await Promise.all([
+  const [inventoryResult, lotsResult, linksResult, sellersResult, referencesResult, versionsResult, productsResult] = await Promise.all([
     supabase
       .from("inventory")
       .select("id,component_id,quantity_available,purchase_price")
       .eq("component_id", id)
       .maybeSingle<InventoryItem>(),
+    safeSelect<InventoryLot>(
+      supabase
+        .from(INVENTORY_LOTS_TABLE)
+        .select("id,component_id,quantity_received,quantity_remaining,unit_cost,received_at,source,notes,created_at")
+        .eq("component_id", id)
+        .order("received_at", { ascending: true })
+        .order("created_at", { ascending: true })
+    ),
     safeSelect<{ component_id: string; seller_id: string; product_url: string | null }>(
       supabase
         .from("component_sellers")
@@ -122,13 +135,14 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     ),
     safeSelect<Seller>(supabase.from("sellers").select("id,name,base_url,lead_time")),
     safeSelect<ComponentReference>(
-      supabase
-        .from("component_references")
+      adminSupabase
+        .schema(PRIVATE_SCHEMA)
+        .from(COMPONENT_REFERENCES_TABLE)
         .select("version_id,component_master_id,reference")
         .eq("component_master_id", id)
         .order("reference")
     ),
-    safeSelect<ProductVersion>(supabase.from("product_versions").select("id,product_id,version_number")),
+    safeSelect<ProductVersion>(adminSupabase.schema(PRIVATE_SCHEMA).from(PRODUCT_VERSIONS_TABLE).select("id,product_id,version_number")),
     safeSelect<Product>(supabase.from("products").select("id,name,image"))
   ]);
 
@@ -140,6 +154,7 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     item: {
       ...componentResult.data,
       inventory: inventoryResult.data ?? null,
+      inventory_lots: lotsResult.data,
       sellers: linksResult.data
         .map((link) => {
           const seller = sellerMap.get(link.seller_id);
@@ -156,6 +171,7 @@ export async function getPartDetail(id: string): Promise<{ item: ComponentDetail
     },
     error:
       inventoryResult.error?.message ??
+      lotsResult.error ??
       linksResult.error ??
       sellersResult.error ??
       referencesResult.error ??

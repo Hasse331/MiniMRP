@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PartDetailSummaryPanel } from "@/features/parts/components/part-detail-summary-panel";
 import { PartInventoryPanel } from "@/features/parts/components/part-inventory-panel";
+import { PartInventoryLotsPanel } from "@/features/parts/components/part-inventory-lots-panel";
 import { PartSellersPanel } from "@/features/parts/components/part-sellers-panel";
 import { PartUsagePanel } from "@/features/parts/components/part-usage-panel";
 import { deletePartAction } from "@/lib/supabase/actions/index";
@@ -50,6 +51,7 @@ export default async function ComponentDetailPage(props: {
       </div>
       <PartSellersPanel part={item} />
       <PartUsagePanel part={item} />
+      <PartInventoryLotsPanel part={item} />
     </div>
   );
 }

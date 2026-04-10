@@ -1,14 +1,15 @@
 "use server";
 
-import { createSupabaseClient } from "../client";
+import { createSupabaseAdminClient } from "../admin-client";
+import { APP_SETTINGS_TABLE, PRIVATE_SCHEMA } from "../table-names";
 import { recordHistory, optionalValue, redirect, revalidatePath, requiredValue, slugify, stringifyHistoryValue } from "./shared";
 
 export async function updatePartAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Component id");
   const previous = await supabase
     .from("components")
-    .select("id,name,category,producer,value,safety_stock")
+    .select("id,sku,name,category,producer,value,safety_stock")
     .eq("id", id)
     .maybeSingle();
 
@@ -17,6 +18,7 @@ export async function updatePartAction(formData: FormData) {
   }
 
   const nextComponent = {
+    sku: requiredValue(formData.get("sku"), "SKU"),
     name: requiredValue(formData.get("name"), "Name"),
     category: requiredValue(formData.get("category"), "Category"),
     producer: requiredValue(formData.get("producer"), "Producer"),
@@ -55,9 +57,10 @@ export async function updatePartAction(formData: FormData) {
 }
 
 export async function createPartAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const settingsResult = await supabase
-    .from("app_settings")
+    .schema(PRIVATE_SCHEMA)
+    .from(APP_SETTINGS_TABLE)
     .select("default_safety_stock")
     .eq("id", true)
     .maybeSingle<{ default_safety_stock: number }>();
@@ -68,6 +71,7 @@ export async function createPartAction(formData: FormData) {
 
   const defaultSafetyStock = settingsResult.data?.default_safety_stock ?? 25;
   const componentPayload = {
+    sku: requiredValue(formData.get("sku"), "SKU"),
     name: requiredValue(formData.get("name"), "Name"),
     category: requiredValue(formData.get("category"), "Category"),
     producer: requiredValue(formData.get("producer"), "Producer"),
@@ -78,8 +82,8 @@ export async function createPartAction(formData: FormData) {
   const insertResult = await supabase
     .from("components")
     .insert(componentPayload)
-    .select("id,name,category,producer,value,safety_stock")
-    .single<{ id: string; name: string; category: string; producer: string; value: string | null; safety_stock: number }>();
+    .select("id,sku,name,category,producer,value,safety_stock")
+    .single<{ id: string; sku: string; name: string; category: string; producer: string; value: string | null; safety_stock: number }>();
 
   if (insertResult.error || !insertResult.data) {
     throw new Error(insertResult.error?.message ?? "Could not create component.");
@@ -154,11 +158,11 @@ export async function createPartAction(formData: FormData) {
 }
 
 export async function deletePartAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Component id");
   const previous = await supabase
     .from("components")
-    .select("id,name,category,producer,value,safety_stock")
+    .select("id,sku,name,category,producer,value,safety_stock")
     .eq("id", id)
     .maybeSingle();
 
@@ -184,7 +188,7 @@ export async function deletePartAction(formData: FormData) {
 }
 
 export async function upsertPartSellerLinkAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const sellerId = requiredValue(formData.get("seller_id"), "Seller id");
   const baseUrl = optionalValue(formData.get("base_url"));
@@ -232,7 +236,7 @@ export async function upsertPartSellerLinkAction(formData: FormData) {
 }
 
 export async function createSellerForPartAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const componentName = requiredValue(formData.get("component_name"), "Component name");
   const sellerName = requiredValue(formData.get("seller_name"), "Seller name");
@@ -278,13 +282,13 @@ export async function createSellerForPartAction(formData: FormData) {
 }
 
 export async function updatePartSafetyStockAction(formData: FormData) {
-  const supabase = createSupabaseClient();
+  const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Component id");
   const safetyStock = Number(requiredValue(formData.get("safety_stock"), "Safety stock"));
   const returnTo = optionalValue(formData.get("returnTo"));
   const previous = await supabase
     .from("components")
-    .select("id,name,category,producer,value,safety_stock")
+    .select("id,sku,name,category,producer,value,safety_stock")
     .eq("id", id)
     .maybeSingle();
 

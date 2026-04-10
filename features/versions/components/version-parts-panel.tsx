@@ -15,7 +15,7 @@ export function VersionPartsPanel(props: {
 }) {
   return (
     <Panel
-      title="Components"
+      title="BOM list"
       description="Components used in this version, grouped by component with merged references and calculated quantity."
       actions={
         <ModalTrigger buttonLabel="Add component" buttonClassName="button primary" title="Add component to version">
@@ -49,6 +49,7 @@ export function VersionPartsPanel(props: {
           <table>
             <thead>
               <tr>
+                <th>SKU</th>
                 <th>Component</th>
                 <th>Category</th>
                 <th>Producer</th>
@@ -61,6 +62,7 @@ export function VersionPartsPanel(props: {
             <tbody>
               {props.version.components.map((row) => (
                 <tr key={row.component.id}>
+                  <td>{row.component.sku}</td>
                   <td>{row.component.name}</td>
                   <td>{row.component.category}</td>
                   <td>{row.component.producer}</td>
@@ -76,6 +78,10 @@ export function VersionPartsPanel(props: {
                         <form action={updatePartAction} className="stack">
                           <input type="hidden" name="id" value={row.component.id} />
                           <input type="hidden" name="versionId" value={props.versionId} />
+                          <div className="field-group">
+                            <label htmlFor={`version-part-sku-${row.component.id}`}>SKU</label>
+                            <input id={`version-part-sku-${row.component.id}`} className="input" name="sku" defaultValue={row.component.sku} />
+                          </div>
                           <div className="field-group">
                             <label htmlFor={`version-part-name-${row.component.id}`}>Name</label>
                             <input id={`version-part-name-${row.component.id}`} className="input" name="name" defaultValue={row.component.name} />
