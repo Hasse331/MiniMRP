@@ -10,11 +10,13 @@ import { Notice, PageHeader } from "@/shared/ui";
 
 export default async function VersionDetailPage(props: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ quantity?: string }>;
+  searchParams?: Promise<{ quantity?: string; entry?: string }>;
 }) {
   const params = await props.params;
   const searchParams = (await props.searchParams) ?? {};
-  const { item, error } = await getVersionDetail(params.id);
+  const { item, error } = await getVersionDetail(params.id, {
+    productionEntryId: searchParams.entry ?? null
+  });
   const { items: allParts } = await getPartCatalog();
   const requestedQuantity = Math.max(Number(searchParams.quantity ?? "1") || 1, 1);
   const mrpRows = buildMrpRows(item?.components ?? [], requestedQuantity);

@@ -98,7 +98,10 @@ export async function getPurchasingOverview(): Promise<{
     );
   }
 
-  const aggregatedRequirements = new Map<string, { totalGrossRequirement: number; totalNetRequirement: number }>();
+  const aggregatedRequirements = new Map<
+    string,
+    { totalGrossRequirement: number; totalNetRequirement: number; totalReservedInventory: number }
+  >();
   if (productionRequirementsResult.data.length > 0) {
     for (const row of productionRequirementsResult.data.filter((item) =>
       activeProductionEntryIds.has(item.production_entry_id)
@@ -107,10 +110,12 @@ export async function getPurchasingOverview(): Promise<{
       if (existing) {
         existing.totalGrossRequirement += row.gross_requirement;
         existing.totalNetRequirement += row.net_requirement;
+        existing.totalReservedInventory += row.inventory_consumed;
       } else {
         aggregatedRequirements.set(row.component_id, {
           totalGrossRequirement: row.gross_requirement,
-          totalNetRequirement: row.net_requirement
+          totalNetRequirement: row.net_requirement,
+          totalReservedInventory: row.inventory_consumed
         });
       }
     }
@@ -125,6 +130,7 @@ export async function getPurchasingOverview(): Promise<{
         return versionDetail.item
           ? versionDetail.item.components.map((component) => ({
               componentId: component.component.id,
+              sku: component.component.sku,
               componentName: component.component.name,
               category: component.component.category,
               producer: component.component.producer,
@@ -139,7 +145,9 @@ export async function getPurchasingOverview(): Promise<{
               grossRequirement: component.quantity * entry.quantity,
               netRequirement: 0,
               grossCost: null,
-              netCost: null
+              netCost: null,
+              reservedForThisCalculation: 0,
+              reservedForEntry: null
             }))
           : [];
       })
@@ -148,7 +156,8 @@ export async function getPurchasingOverview(): Promise<{
     for (const item of aggregateProductionRequirements(productionRows.flat())) {
       aggregatedRequirements.set(item.componentId, {
         totalGrossRequirement: item.totalGrossRequirement,
-        totalNetRequirement: item.totalNetRequirement
+        totalNetRequirement: item.totalNetRequirement,
+        totalReservedInventory: item.totalGrossRequirement - item.totalNetRequirement
       });
     }
   }
@@ -174,6 +183,7 @@ export async function getPurchasingOverview(): Promise<{
       producer: component.producer,
       value: component.value,
       gross_requirement: totals.totalGrossRequirement,
+      reserved_inventory: totals.totalReservedInventory,
       safety_stock: component.safety_stock,
       quantity_available: inventoryMap.get(componentId)?.quantity_available ?? 0,
       purchase_price: inventoryMap.get(componentId)?.purchase_price ?? null,
@@ -204,6 +214,7 @@ export async function getPurchasingOverview(): Promise<{
       return {
         ...component,
         gross_requirement: 0,
+        reserved_inventory: 0,
         quantity_available: quantityAvailable,
         purchase_price: inventory?.purchase_price ?? null,
         lead_time: leadTimeMap.get(component.id) ?? null,

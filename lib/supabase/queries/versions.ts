@@ -17,7 +17,10 @@ import { createSupabaseClient } from "../client";
 import { ATTACHMENTS_TABLE, COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
-export async function getVersionDetail(id: string): Promise<{ item: VersionDetail | null; error: string | null }> {
+export async function getVersionDetail(
+  id: string,
+  options?: { productionEntryId?: string | null }
+): Promise<{ item: VersionDetail | null; error: string | null }> {
   noStore();
   const supabase = await createSupabaseClient();
   const adminSupabase = createSupabaseAdminClient();
@@ -107,6 +110,17 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
       quantity: productionQuantityMap.get(item.production_entry_id) ?? 0
     }))
   );
+  const entryRequirementMap = new Map<string, number>();
+  if (options?.productionEntryId) {
+    for (const item of activeRequirementsResult.data.filter(
+      (requirement) => requirement.production_entry_id === options.productionEntryId
+    )) {
+      entryRequirementMap.set(
+        item.component_id,
+        (entryRequirementMap.get(item.component_id) ?? 0) + item.inventory_consumed
+      );
+    }
+  }
 
   for (const link of linksResult.data) {
     const leadTime = sellerMap.get(link.seller_id)?.lead_time ?? null;
@@ -132,6 +146,7 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
         gross_requirement: number;
         inventory_consumed: number;
         net_requirement: number;
+        entry_inventory_consumed: number | null;
         active_production_quantity: number;
         active_entry_count: number;
       };
@@ -159,6 +174,7 @@ export async function getVersionDetail(id: string): Promise<{ item: VersionDetai
           gross_requirement: reservedSummary[component.id]?.grossRequirement ?? 0,
           inventory_consumed: reservedSummary[component.id]?.inventoryConsumed ?? 0,
           net_requirement: reservedSummary[component.id]?.netRequirement ?? 0,
+          entry_inventory_consumed: entryRequirementMap.get(component.id) ?? null,
           active_production_quantity: reservedSummary[component.id]?.activeProductionQuantity ?? 0,
           active_entry_count: reservedSummary[component.id]?.activeEntryCount ?? 0
         }

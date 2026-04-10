@@ -44,7 +44,7 @@ export function ProductionListPanel(props: {
                   <td>{new Date(props.completed ? item.completed_at ?? item.created_at : item.created_at).toLocaleString()}</td>
                   <td>
                     <div className="action-row">
-                      <Link className="button-link subtle" href={`/versions/${item.version_id}?quantity=${item.quantity}`}>
+                      <Link className="button-link subtle" href={`/versions/${item.version_id}?quantity=${item.quantity}&entry=${item.id}`}>
                         Open
                       </Link>
                       <a className="button-link subtle" href={`/api/export/mrp/${item.version_id}?quantity=${item.quantity}`}>
@@ -60,7 +60,7 @@ export function ProductionListPanel(props: {
                             <form action={completeProductionEntryAction} className="stack">
                               <input type="hidden" name="production_entry_id" value={item.id} />
                               <div className="notice">
-                                This will move the production entry to completed production. Inventory will not be changed.
+                                This will move the production entry to completed production. Any remaining net need will be consumed from inventory lots using FIFO first. If stock is still missing, completion will be blocked.
                               </div>
                               <button className="button primary" type="submit">
                                 Confirm ready

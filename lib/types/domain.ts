@@ -107,6 +107,7 @@ export interface VersionDetail extends ProductVersion {
       gross_requirement: number;
       inventory_consumed: number;
       net_requirement: number;
+      entry_inventory_consumed: number | null;
       active_production_quantity: number;
       active_entry_count: number;
     };
@@ -138,6 +139,7 @@ export interface ComponentDetail extends ComponentMaster {
 
 export interface PurchasingItem extends ComponentMaster {
   gross_requirement: number;
+  reserved_inventory: number;
   quantity_available: number;
   purchase_price: number | null;
   lead_time: number | null;

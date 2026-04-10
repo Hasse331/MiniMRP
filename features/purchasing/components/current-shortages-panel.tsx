@@ -18,9 +18,10 @@ export function CurrentShortagesPanel(props: { shortages: PurchasingItem[] }) {
                 <th>Component</th>
                 <th>Category</th>
                 <th>Gross requirement</th>
+                <th>Reserved</th>
+                <th>Net need</th>
                 <th>Available</th>
                 <th>Safety stock</th>
-                <th>Net need</th>
                 <th>Recommended order</th>
                 <th>Lead time</th>
                 <th>Seller</th>
@@ -33,9 +34,10 @@ export function CurrentShortagesPanel(props: { shortages: PurchasingItem[] }) {
                   <td>{item.name}</td>
                   <td>{item.category}</td>
                   <td>{item.gross_requirement}</td>
+                  <td>{item.reserved_inventory}</td>
+                  <td>{item.net_need}</td>
                   <td>{item.quantity_available}</td>
                   <td>{item.safety_stock}</td>
-                  <td>{item.net_need}</td>
                   <td>{item.recommended_order_quantity}</td>
                   <td>{item.lead_time ?? "-"}</td>
                   <td>

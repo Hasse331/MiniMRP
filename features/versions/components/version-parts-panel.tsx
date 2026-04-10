@@ -15,7 +15,7 @@ export function VersionPartsPanel(props: {
 }) {
   return (
     <Panel
-      title="Components"
+      title="BOM list"
       description="Components used in this version, grouped by component with merged references and calculated quantity."
       actions={
         <ModalTrigger buttonLabel="Add component" buttonClassName="button primary" title="Add component to version">
@@ -49,6 +49,7 @@ export function VersionPartsPanel(props: {
           <table>
             <thead>
               <tr>
+                <th>SKU</th>
                 <th>Component</th>
                 <th>Category</th>
                 <th>Producer</th>
@@ -61,6 +62,7 @@ export function VersionPartsPanel(props: {
             <tbody>
               {props.version.components.map((row) => (
                 <tr key={row.component.id}>
+                  <td>{row.component.sku}</td>
                   <td>{row.component.name}</td>
                   <td>{row.component.category}</td>
                   <td>{row.component.producer}</td>

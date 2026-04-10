@@ -38,6 +38,8 @@ test("buildMrpRows calculates quantities and costs", () => {
 
   assert.equal(rows[0]?.grossRequirement, 8);
   assert.equal(rows[0]?.netRequirement, 5);
+  assert.equal(rows[0]?.reservedForThisCalculation, 3);
+  assert.equal(rows[0]?.reservedForEntry, null);
   assert.equal(rows[0]?.grossCost, 4);
   assert.equal(rows[0]?.netCost, 2.5);
 });
@@ -77,6 +79,7 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
   const summary = summarizeMrpRows([
     {
       componentId: "1",
+      sku: "SKU-1",
       componentName: "A",
       category: "IC",
       producer: "X",
@@ -92,10 +95,13 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       netRequirement: 7,
       grossCost: 15,
       netCost: 10.5,
+      reservedForThisCalculation: 3,
+      reservedForEntry: 2,
       reservedInventory: 2
     },
     {
       componentId: "2",
+      sku: "SKU-2",
       componentName: "B",
       category: "IC",
       producer: "Y",
@@ -111,6 +117,8 @@ test("summarizeMrpRows returns totals for numeric columns", () => {
       netRequirement: 0,
       grossCost: 10,
       netCost: 0,
+      reservedForThisCalculation: 5,
+      reservedForEntry: null,
       reservedInventory: 1
     }
   ]);
@@ -215,7 +223,7 @@ test("buildProductionShortageMetrics keeps stored net need even when current inv
   });
 
   assert.equal(metrics.netNeed, 12);
-  assert.equal(metrics.recommendedOrderQuantity, 37);
+  assert.equal(metrics.recommendedOrderQuantity, 25);
 });
 
 test("buildProductionShortageMetrics keeps shortage visibility based on stored net requirement", () => {
@@ -227,7 +235,7 @@ test("buildProductionShortageMetrics keeps shortage visibility based on stored n
   });
 
   assert.equal(metrics.netNeed, 12);
-  assert.equal(metrics.recommendedOrderQuantity, 30);
+  assert.equal(metrics.recommendedOrderQuantity, 25);
 });
 
 test("buildProductionShortageMetrics recommends only safety stock when gross need is already covered but stored net need remains", () => {
@@ -242,10 +250,23 @@ test("buildProductionShortageMetrics recommends only safety stock when gross nee
   assert.equal(metrics.recommendedOrderQuantity, 25);
 });
 
+test("buildProductionShortageMetrics subtracts currently available stock from recommended order", () => {
+  const metrics = buildProductionShortageMetrics({
+    totalGrossRequirement: 200,
+    totalNetRequirement: 100,
+    availableInventory: 16,
+    safetyStock: 40
+  });
+
+  assert.equal(metrics.netNeed, 100);
+  assert.equal(metrics.recommendedOrderQuantity, 124);
+});
+
 test("calculateProductionLongestLeadTime ignores covered rows", () => {
   const longestLeadTime = calculateProductionLongestLeadTime([
     {
       componentId: "1",
+      sku: "SKU-1",
       componentName: "Covered part",
       category: "IC",
       producer: "X",
@@ -260,10 +281,13 @@ test("calculateProductionLongestLeadTime ignores covered rows", () => {
       grossRequirement: 5,
       netRequirement: 0,
       grossCost: 5,
-      netCost: 0
+      netCost: 0,
+      reservedForThisCalculation: 5,
+      reservedForEntry: null
     },
     {
       componentId: "2",
+      sku: "SKU-2",
       componentName: "Short part",
       category: "IC",
       producer: "Y",
@@ -278,7 +302,9 @@ test("calculateProductionLongestLeadTime ignores covered rows", () => {
       grossRequirement: 5,
       netRequirement: 4,
       grossCost: 10,
-      netCost: 8
+      netCost: 8,
+      reservedForThisCalculation: 1,
+      reservedForEntry: null
     }
   ]);
 
@@ -289,6 +315,7 @@ test("calculateProductionLongestLeadTime returns zero when all parts are covered
   const longestLeadTime = calculateProductionLongestLeadTime([
     {
       componentId: "1",
+      sku: "SKU-1",
       componentName: "Covered part",
       category: "IC",
       producer: "X",
@@ -303,7 +330,9 @@ test("calculateProductionLongestLeadTime returns zero when all parts are covered
       grossRequirement: 5,
       netRequirement: 0,
       grossCost: 5,
-      netCost: 0
+      netCost: 0,
+      reservedForThisCalculation: 5,
+      reservedForEntry: null
     }
   ]);
 

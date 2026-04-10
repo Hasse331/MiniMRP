@@ -2,8 +2,12 @@ import { ProductionListPanel } from "@/features/production/components/production
 import { getProductionOverview } from "@/lib/supabase/queries/index";
 import { Notice, PageHeader } from "@/shared/ui";
 
-export default async function ProductionPage() {
+export default async function ProductionPage(props: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const searchParams = (await props.searchParams) ?? {};
   const { underProduction, completed, error } = await getProductionOverview();
+  const pageError = searchParams.error;
 
   return (
     <div className="page">
@@ -12,6 +16,7 @@ export default async function ProductionPage() {
         description="Versions currently under production with quantity, lead time, and MRP shortcuts."
       />
 
+      {pageError ? <Notice error>{pageError}</Notice> : null}
       {error ? <Notice error>{error}</Notice> : null}
       <ProductionListPanel
         items={underProduction}

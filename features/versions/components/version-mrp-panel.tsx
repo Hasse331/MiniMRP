@@ -21,7 +21,7 @@ export function VersionMrpPanel(props: {
   return (
     <Panel
       title="MRP result"
-      description="Gross requirement is per-product quantity multiplied by build quantity. Net requirement subtracts current available inventory, and Add to production consumes gross requirement from stock immediately."
+      description="Gross requirement is per-product quantity multiplied by build quantity. Net requirement subtracts current available inventory. Can reserve shows how much this calculation could take from current stock right now, Res. entry shows what is already reserved for the selected production entry, and Res. active is the total reserved across active production entries for this version."
       actions={
         <div className="mrp-actions">
           <form className="mrp-actions">
@@ -63,16 +63,16 @@ export function VersionMrpPanel(props: {
           <table>
             <thead>
               <tr>
+                <th>SKU</th>
                 <th>Component</th>
-                <th>Category</th>
-                <th>Producer</th>
-                <th>Refs</th>
                 <th>Qty per product</th>
                 <th>Safety stock</th>
                 <th>Available</th>
                 <th>Gross</th>
                 <th>Net</th>
-                <th>Reserved</th>
+                <th title="How much this calculation could reserve immediately from current available stock.">Can reserve</th>
+                <th title="Already reserved for the currently selected production entry, when this page is opened from Production.">Res. entry</th>
+                <th title="Total already reserved across active production entries for this version.">Res. active</th>
                 <th>Lead time</th>
                 <th>Unit price</th>
                 <th>Gross cost</th>
@@ -82,22 +82,22 @@ export function VersionMrpPanel(props: {
             <tbody>
               {props.rows.map((row) => (
                 <tr key={`mrp-${row.componentId}`}>
+                  <td>{row.sku}</td>
                   <td>
                     <div>{row.componentName}</div>
                     {(row.activeProductionQuantity ?? 0) > 0 ? (
                       <div className="small muted">
-                        Active production qty {row.activeProductionQuantity ?? 0}
+                        Across active production entries: qty {row.activeProductionQuantity ?? 0}
                       </div>
                     ) : null}
                   </td>
-                  <td>{row.category}</td>
-                  <td>{row.producer}</td>
-                  <td>{row.references.join(", ")}</td>
                   <td>{row.quantityPerProduct}</td>
                   <td>{row.safetyStock}</td>
                   <td>{row.availableInventory}</td>
                   <td>{row.grossRequirement}</td>
                   <td>{row.netRequirement}</td>
+                  <td>{row.reservedForThisCalculation}</td>
+                  <td>{row.reservedForEntry ?? "-"}</td>
                   <td>{row.reservedInventory ?? 0}</td>
                   <td>{row.leadTime ?? "-"}</td>
                   <td>{row.unitPrice === null ? "-" : row.unitPrice.toFixed(4)}</td>
@@ -112,10 +112,11 @@ export function VersionMrpPanel(props: {
                 <td></td>
                 <td></td>
                 <td></td>
-                <td></td>
                 <td>{props.summary.grossRequirement}</td>
+                <td>{props.summary.netRequirement}</td>
                 <td></td>
                 <td></td>
+                <td>{props.summary.reservedInventory}</td>
                 <td></td>
                 <td></td>
                 <td>{props.summary.grossCost.toFixed(4)}</td>
