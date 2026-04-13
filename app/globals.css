@@ -399,6 +399,11 @@ th {
   gap: 10px;
 }
 
+.import-notes {
+  display: grid;
+  gap: 6px;
+}
+
 .small {
   font-size: 0.88rem;
 }
@@ -455,6 +460,29 @@ th {
   width: 100%;
   height: auto;
   object-fit: cover;
+}
+
+.attachment-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.attachment-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.attachment-preview {
+  min-height: 140px;
+}
+
+.attachment-meta {
+  display: grid;
+  gap: 4px;
 }
 
 @media (max-width: 960px) {

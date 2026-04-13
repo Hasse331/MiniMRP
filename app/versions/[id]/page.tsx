@@ -10,7 +10,12 @@ import { Notice, PageHeader } from "@/shared/ui";
 
 export default async function VersionDetailPage(props: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ quantity?: string; entry?: string }>;
+  searchParams?: Promise<{
+    quantity?: string;
+    entry?: string;
+    bomImportError?: string;
+    attachmentError?: string;
+  }>;
 }) {
   const params = await props.params;
   const searchParams = (await props.searchParams) ?? {};
@@ -32,13 +37,19 @@ export default async function VersionDetailPage(props: {
       <PageHeader
         title={item ? `${item.product?.name ?? "Product"} - ${item.version_number}` : "Version"}
         description="Version detail page with attachments, BOM references, and BOM import entry point."
-        actions={<VersionHeaderActions version={item} versionId={params.id} />}
+        actions={
+          <VersionHeaderActions
+            version={item}
+            versionId={params.id}
+            bomImportError={searchParams.bomImportError ?? null}
+          />
+        }
       />
 
       {error ? <Notice error>{error}</Notice> : null}
 
       <div className="two-column">
-        <VersionAttachmentsPanel version={item} />
+        <VersionAttachmentsPanel version={item} initialError={searchParams.attachmentError ?? null} />
         <VersionInfoPanel version={item} unitCost={versionUnitCost} />
       </div>
       <VersionPartsPanel versionId={params.id} version={item} allParts={allParts} />

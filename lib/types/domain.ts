@@ -2,6 +2,7 @@ export interface Product {
   id: string;
   name: string;
   image: string | null;
+  image_path: string | null;
 }
 
 export interface ProductVersion {
@@ -78,6 +79,9 @@ export interface Attachment {
   id: string;
   version_id: string;
   file_path: string;
+  file_url: string | null;
+  file_name: string | null;
+  is_image: boolean;
 }
 
 export interface ProductListItem extends Product {

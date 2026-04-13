@@ -1,4 +1,5 @@
 import { unstable_noStore as noStore } from "next/cache";
+import { getStoredFileName, isImageFilePath } from "@/lib/mappers/file-storage";
 import { summarizeReservedRequirements } from "@/lib/mappers/production";
 import type {
   Attachment,
@@ -14,6 +15,7 @@ import type {
 } from "@/lib/types/domain";
 import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { PRODUCT_IMAGES_BUCKET, resolveStoredFileUrl, VERSION_ATTACHMENTS_BUCKET } from "../storage";
 import { ATTACHMENTS_TABLE, COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { safeSelect } from "./shared";
 
@@ -45,8 +47,8 @@ export async function getVersionDetail(
         .from("products")
         .select("id,name,image")
         .eq("id", versionResult.data.product_id)
-        .maybeSingle<Product>(),
-      safeSelect<Attachment>(
+        .maybeSingle<{ id: string; name: string; image: string | null }>(),
+      safeSelect<{ id: string; version_id: string; file_path: string }>(
         adminSupabase.schema(PRIVATE_SCHEMA).from(ATTACHMENTS_TABLE).select("id,version_id,file_path").eq("version_id", id)
       ),
       safeSelect<ComponentReference>(
@@ -182,30 +184,66 @@ export async function getVersionDetail(
     }
   }
 
-  return {
-    item: {
-      ...versionResult.data,
-      product: productResult.data ?? null,
-      active_production_quantity: activeProductionQuantity,
-      active_production_count: activeProductionCount,
-      attachments: attachmentsResult.data,
-      references: referencesResult.data.map((reference) => ({
-        reference: reference.reference,
-        component: componentMap.get(reference.component_master_id) ?? null
-      })),
-      components: Array.from(groupedComponents.values()).sort((left, right) =>
-        left.component.name.localeCompare(right.component.name)
-      )
-    },
-    error:
-      productResult.error?.message ??
-      attachmentsResult.error ??
-      referencesResult.error ??
-      componentsResult.error ??
-      inventoryResult.error ??
-      linksResult.error ??
-      sellersResult.error ??
-      activeProductionEntriesResult.error ??
-      activeRequirementsResult.error
-  };
+  const error =
+    productResult.error?.message ??
+    attachmentsResult.error ??
+    referencesResult.error ??
+    componentsResult.error ??
+    inventoryResult.error ??
+    linksResult.error ??
+    sellersResult.error ??
+    activeProductionEntriesResult.error ??
+    activeRequirementsResult.error;
+
+  if (error) {
+    return {
+      item: null,
+      error
+    };
+  }
+
+  try {
+    const product = productResult.data
+      ? {
+          id: productResult.data.id,
+          name: productResult.data.name,
+          image: await resolveStoredFileUrl(adminSupabase, PRODUCT_IMAGES_BUCKET, productResult.data.image),
+          image_path: productResult.data.image
+        }
+      : null;
+
+    const attachments: Attachment[] = await Promise.all(
+      attachmentsResult.data.map(async (attachment) => ({
+        id: attachment.id,
+        version_id: attachment.version_id,
+        file_path: attachment.file_path,
+        file_url: await resolveStoredFileUrl(adminSupabase, VERSION_ATTACHMENTS_BUCKET, attachment.file_path),
+        file_name: getStoredFileName(attachment.file_path),
+        is_image: isImageFilePath(attachment.file_path)
+      }))
+    );
+
+    return {
+      item: {
+        ...versionResult.data,
+        product,
+        active_production_quantity: activeProductionQuantity,
+        active_production_count: activeProductionCount,
+        attachments,
+        references: referencesResult.data.map((reference) => ({
+          reference: reference.reference,
+          component: componentMap.get(reference.component_master_id) ?? null
+        })),
+        components: Array.from(groupedComponents.values()).sort((left, right) =>
+          left.component.name.localeCompare(right.component.name)
+        )
+      },
+      error: null
+    };
+  } catch (reason) {
+    return {
+      item: null,
+      error: reason instanceof Error ? reason.message : "Could not resolve file URLs."
+    };
+  }
 }

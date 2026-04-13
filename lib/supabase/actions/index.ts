@@ -12,7 +12,13 @@ export {
   updatePartSafetyStockAction,
   upsertPartSellerLinkAction
 } from "./parts";
-export { createProductAction, createVersionAction, updateProductAction } from "./products";
+export {
+  createProductAction,
+  createVersionAction,
+  removeProductImageAction,
+  updateProductAction,
+  uploadProductImageAction
+} from "./products";
 export {
   addProductionEntryAction,
   cancelProductionEntryAction,
@@ -21,8 +27,11 @@ export {
 export { importMasterDataAction, updateDefaultSafetyStockAction } from "./settings";
 export {
   attachPartToVersionAction,
+  deleteVersionAttachmentAction,
   deleteVersionAction,
+  importVersionBomAction,
   removePartFromVersionAction,
   updateVersionComponentReferencesAction,
-  updateVersionAction
+  updateVersionAction,
+  uploadVersionAttachmentAction
 } from "./versions";

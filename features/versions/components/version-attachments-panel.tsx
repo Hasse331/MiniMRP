@@ -1,21 +1,72 @@
+import { deleteVersionAttachmentAction, uploadVersionAttachmentAction } from "@/lib/supabase/actions";
 import type { VersionDetail } from "@/lib/types/domain";
-import { EmptyState, Panel } from "@/shared/ui";
+import { EmptyState, Notice, Panel } from "@/shared/ui";
 
-export function VersionAttachmentsPanel(props: { version: VersionDetail | null }) {
+export function VersionAttachmentsPanel(props: {
+  version: VersionDetail | null;
+  initialError?: string | null;
+}) {
   return (
-    <Panel title="Attachments" description="Files linked to this version.">
+    <Panel
+      title="Attachments"
+      description="Upload files for this version. Images show previews and other files open in a new tab."
+    >
+      {props.version ? (
+        <form action={uploadVersionAttachmentAction} className="stack">
+          <input type="hidden" name="version_id" value={props.version.id} />
+          <div className="field-group">
+            <label htmlFor={`version-attachment-file-${props.version.id}`}>Attachment file</label>
+            <input
+              id={`version-attachment-file-${props.version.id}`}
+              className="input"
+              type="file"
+              name="file"
+              required
+            />
+          </div>
+          <button className="button primary" type="submit">
+            Upload attachment
+          </button>
+        </form>
+      ) : null}
+
+      {props.initialError ? <Notice error>{props.initialError}</Notice> : null}
+
       {props.version?.attachments.length ? (
-        <div className="stack">
+        <div className="attachment-grid">
           {props.version.attachments.map((attachment) => (
-            <a
-              key={attachment.id}
-              href={attachment.file_path}
-              target="_blank"
-              rel="noreferrer"
-              className="button-link subtle"
-            >
-              {attachment.file_path}
-            </a>
+            <div key={attachment.id} className="attachment-card">
+              {attachment.is_image && attachment.file_url ? (
+                <div className="image-frame attachment-preview">
+                  <img src={attachment.file_url} alt={attachment.file_name ?? "Attachment"} />
+                </div>
+              ) : null}
+
+              <div className="attachment-meta">
+                <strong>{attachment.file_name ?? attachment.file_path}</strong>
+                <span className="small muted">{attachment.file_path}</span>
+              </div>
+
+              <div className="action-row">
+                {attachment.file_url ? (
+                  <a
+                    href={attachment.file_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="button-link subtle"
+                  >
+                    Open
+                  </a>
+                ) : null}
+                <form action={deleteVersionAttachmentAction}>
+                  <input type="hidden" name="version_id" value={props.version?.id ?? ""} />
+                  <input type="hidden" name="attachment_id" value={attachment.id} />
+                  <button className="button danger" type="submit">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
           ))}
         </div>
       ) : (

@@ -1,9 +1,89 @@
 "use server";
 
+import { buildVersionBomReferenceRows, normalizeVersionBomRows, parseVersionBomFile } from "@/lib/import/version-bom";
 import { normalizeReferencesInput } from "@/lib/mappers/bom";
 import { createSupabaseAdminClient } from "../admin-client";
-import { COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
+import { deleteStoredFileIfPresent, uploadStoredFile, VERSION_ATTACHMENTS_BUCKET } from "../storage";
+import { ATTACHMENTS_TABLE, COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
+
+export async function importVersionBomAction(formData: FormData) {
+  const supabase = createSupabaseAdminClient();
+  const versionId = requiredValue(formData.get("version_id"), "Version id");
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirectVersionError(versionId, "bomImportError", "Import file is required.");
+  }
+
+  try {
+    const normalizedRows = normalizeVersionBomRows(await parseVersionBomFile(file));
+    if (normalizedRows.length === 0) {
+      redirectVersionError(versionId, "bomImportError", "The selected file did not contain any import rows.");
+    }
+
+    const componentsResult = await supabase.from("components").select("id,sku");
+    if (componentsResult.error) {
+      throw new Error(componentsResult.error.message);
+    }
+
+    const referenceRows = buildVersionBomReferenceRows({
+      versionId,
+      rows: normalizedRows,
+      components: (componentsResult.data ?? []).map((row) => ({
+        id: String(row.id),
+        sku: String(row.sku)
+      }))
+    });
+    const skuCount = new Set(normalizedRows.map((row) => row.sku.trim().toUpperCase())).size;
+    const previous = await supabase
+      .schema(PRIVATE_SCHEMA)
+      .from(COMPONENT_REFERENCES_TABLE)
+      .select("version_id,component_master_id,reference")
+      .eq("version_id", versionId);
+
+    if (previous.error) {
+      throw new Error(previous.error.message);
+    }
+
+    const deleteResult = await supabase
+      .schema(PRIVATE_SCHEMA)
+      .from(COMPONENT_REFERENCES_TABLE)
+      .delete()
+      .eq("version_id", versionId);
+
+    if (deleteResult.error) {
+      throw new Error(deleteResult.error.message);
+    }
+
+    const insertResult = await supabase
+      .schema(PRIVATE_SCHEMA)
+      .from(COMPONENT_REFERENCES_TABLE)
+      .insert(referenceRows);
+
+    if (insertResult.error) {
+      throw new Error(insertResult.error.message);
+    }
+
+    await recordHistory({
+      entity_type: "version",
+      entity_id: versionId,
+      action_type: "import_bom",
+      summary: `Replaced BOM by import for version ${versionId}`,
+      old_value: stringifyHistoryValue(previous.data),
+      new_value: stringifyHistoryValue({
+        file_name: file.name,
+        references: referenceRows.length,
+        skus: skuCount
+      })
+    });
+  } catch (error) {
+    redirectVersionError(versionId, "bomImportError", error instanceof Error ? error.message : "Could not import BOM.");
+  }
+
+  revalidatePath(`/versions/${versionId}`);
+  redirect(`/versions/${versionId}`);
+}
 
 export async function attachPartToVersionAction(formData: FormData) {
   const supabase = createSupabaseAdminClient();
@@ -165,6 +245,105 @@ export async function updateVersionAction(formData: FormData) {
   redirect(`/versions/${id}`);
 }
 
+export async function uploadVersionAttachmentAction(formData: FormData) {
+  const supabase = createSupabaseAdminClient();
+  const versionId = requiredValue(formData.get("version_id"), "Version id");
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirectVersionError(versionId, "attachmentError", "Attachment file is required.");
+  }
+
+  let storedPath: string | null = null;
+
+  try {
+    storedPath = await uploadStoredFile({
+      supabase,
+      bucket: VERSION_ATTACHMENTS_BUCKET,
+      scope: "versions",
+      entityId: versionId,
+      file
+    });
+
+    const insertResult = await supabase.schema(PRIVATE_SCHEMA).from(ATTACHMENTS_TABLE).insert({
+      version_id: versionId,
+      file_path: storedPath
+    });
+
+    if (insertResult.error) {
+      throw new Error(insertResult.error.message);
+    }
+
+    await recordHistory({
+      entity_type: "attachment",
+      entity_id: versionId,
+      action_type: "upload",
+      summary: `Uploaded attachment ${file.name} for version ${versionId}`,
+      new_value: stringifyHistoryValue({ version_id: versionId, file_path: storedPath })
+    });
+  } catch (error) {
+    if (storedPath) {
+      await deleteStoredFileIfPresent({
+        supabase,
+        bucket: VERSION_ATTACHMENTS_BUCKET,
+        storedValue: storedPath
+      }).catch(() => undefined);
+    }
+
+    redirectVersionError(
+      versionId,
+      "attachmentError",
+      error instanceof Error ? error.message : "Could not upload attachment."
+    );
+  }
+
+  revalidatePath(`/versions/${versionId}`);
+  redirect(`/versions/${versionId}`);
+}
+
+export async function deleteVersionAttachmentAction(formData: FormData) {
+  const supabase = createSupabaseAdminClient();
+  const versionId = requiredValue(formData.get("version_id"), "Version id");
+  const attachmentId = requiredValue(formData.get("attachment_id"), "Attachment id");
+  const previous = await supabase
+    .schema(PRIVATE_SCHEMA)
+    .from(ATTACHMENTS_TABLE)
+    .select("id,version_id,file_path")
+    .eq("id", attachmentId)
+    .maybeSingle<{ id: string; version_id: string; file_path: string }>();
+
+  if (previous.error || !previous.data) {
+    throw new Error(previous.error?.message ?? "Attachment not found.");
+  }
+
+  await deleteStoredFileIfPresent({
+    supabase,
+    bucket: VERSION_ATTACHMENTS_BUCKET,
+    storedValue: previous.data.file_path
+  });
+
+  const deleteResult = await supabase
+    .schema(PRIVATE_SCHEMA)
+    .from(ATTACHMENTS_TABLE)
+    .delete()
+    .eq("id", attachmentId);
+
+  if (deleteResult.error) {
+    throw new Error(deleteResult.error.message);
+  }
+
+  await recordHistory({
+    entity_type: "attachment",
+    entity_id: versionId,
+    action_type: "delete",
+    summary: `Deleted attachment ${attachmentId} from version ${versionId}`,
+    old_value: stringifyHistoryValue(previous.data)
+  });
+
+  revalidatePath(`/versions/${versionId}`);
+  redirect(`/versions/${versionId}`);
+}
+
 export async function deleteVersionAction(formData: FormData) {
   const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Version id");
@@ -194,4 +373,12 @@ export async function deleteVersionAction(formData: FormData) {
 
   revalidatePath(`/products/${productId}`);
   redirect(`/products/${productId}`);
+}
+
+function redirectVersionError(
+  versionId: string,
+  key: "bomImportError" | "attachmentError",
+  message: string
+): never {
+  redirect(`/versions/${versionId}?${key}=${encodeURIComponent(message)}`);
 }
