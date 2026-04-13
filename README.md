@@ -77,6 +77,12 @@ npm run dev
 
 5. Open `http://localhost:3000`.
 
+## Storage Setup
+
+- Create private bucket `version-attachments`
+- Create private bucket `product-images`
+- Confirm `.env.development` includes `NEXT_PUBLIC_SUPABASE_URL` and a service-role key via `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`
+
 ## Useful Scripts
 
 - `npm run dev`

@@ -2,6 +2,7 @@
 
 import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
+import { deleteStoredFileIfPresent, PRODUCT_IMAGES_BUCKET, uploadStoredFile } from "../storage";
 import { PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
@@ -91,4 +92,106 @@ export async function updateProductAction(formData: FormData) {
   revalidatePath("/products");
   revalidatePath(`/products/${id}`);
   redirect(`/products/${id}`);
+}
+
+export async function uploadProductImageAction(formData: FormData) {
+  const supabase = createSupabaseAdminClient();
+  const id = requiredValue(formData.get("id"), "Product id");
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirectProductImageError(id, "Product image file is required.");
+  }
+
+  const previous = await supabase.from("products").select("id,name,image").eq("id", id).maybeSingle();
+  if (previous.error || !previous.data) {
+    throw new Error(previous.error?.message ?? "Product not found.");
+  }
+
+  let storedPath: string | null = null;
+
+  try {
+    storedPath = await uploadStoredFile({
+      supabase,
+      bucket: PRODUCT_IMAGES_BUCKET,
+      scope: "products",
+      entityId: id,
+      file
+    });
+
+    await deleteStoredFileIfPresent({
+      supabase,
+      bucket: PRODUCT_IMAGES_BUCKET,
+      storedValue: previous.data.image
+    });
+
+    const updateResult = await supabase.from("products").update({ image: storedPath }).eq("id", id);
+    if (updateResult.error) {
+      throw new Error(updateResult.error.message);
+    }
+
+    await recordHistory({
+      entity_type: "product",
+      entity_id: id,
+      action_type: "upload_image",
+      summary: `Uploaded product image for ${previous.data.name}`,
+      old_value: stringifyHistoryValue(previous.data),
+      new_value: stringifyHistoryValue({ ...previous.data, image: storedPath })
+    });
+  } catch (error) {
+    if (storedPath) {
+      await deleteStoredFileIfPresent({
+        supabase,
+        bucket: PRODUCT_IMAGES_BUCKET,
+        storedValue: storedPath
+      }).catch(() => undefined);
+    }
+
+    redirectProductImageError(
+      id,
+      error instanceof Error ? error.message : "Could not upload product image."
+    );
+  }
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${id}`);
+  redirect(`/products/${id}`);
+}
+
+export async function removeProductImageAction(formData: FormData) {
+  const supabase = createSupabaseAdminClient();
+  const id = requiredValue(formData.get("id"), "Product id");
+  const previous = await supabase.from("products").select("id,name,image").eq("id", id).maybeSingle();
+
+  if (previous.error || !previous.data) {
+    throw new Error(previous.error?.message ?? "Product not found.");
+  }
+
+  await deleteStoredFileIfPresent({
+    supabase,
+    bucket: PRODUCT_IMAGES_BUCKET,
+    storedValue: previous.data.image
+  });
+
+  const updateResult = await supabase.from("products").update({ image: null }).eq("id", id);
+  if (updateResult.error) {
+    throw new Error(updateResult.error.message);
+  }
+
+  await recordHistory({
+    entity_type: "product",
+    entity_id: id,
+    action_type: "remove_image",
+    summary: `Removed product image from ${previous.data.name}`,
+    old_value: stringifyHistoryValue(previous.data),
+    new_value: stringifyHistoryValue({ ...previous.data, image: null })
+  });
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${id}`);
+  redirect(`/products/${id}`);
+}
+
+function redirectProductImageError(productId: string, message: string): never {
+  redirect(`/products/${productId}?imageError=${encodeURIComponent(message)}`);
 }

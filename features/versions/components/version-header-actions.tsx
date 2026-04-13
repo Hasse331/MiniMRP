@@ -1,11 +1,12 @@
-import { ImportPreview } from "@/features/import/import-preview";
 import { deleteVersionAction, updateVersionAction } from "@/lib/supabase/actions/index";
 import type { VersionDetail } from "@/lib/types/domain";
 import { BackLink, ModalTrigger } from "@/shared/ui";
+import { VersionBomImportForm } from "./version-bom-import-form";
 
 export function VersionHeaderActions(props: {
   version: VersionDetail | null;
   versionId: string;
+  bomImportError?: string | null;
 }) {
   const { version, versionId } = props;
 
@@ -44,12 +45,7 @@ export function VersionHeaderActions(props: {
         Export BOM
       </a>
       <ModalTrigger buttonLabel="Import BOM" title="Import BOM from CSV or Excel">
-        <ImportPreview
-          plain
-          title="Import BOM from CSV or Excel"
-          description="Bulk import entry point for version BOM data."
-          mappingHint="Expected target fields include version reference, component mapping, and optional user-defined source columns. Next implementation step is persisting mapped rows to Supabase."
-        />
+        <VersionBomImportForm versionId={versionId} initialError={props.bomImportError} />
       </ModalTrigger>
     </>
   );

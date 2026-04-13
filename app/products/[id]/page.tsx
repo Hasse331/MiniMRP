@@ -8,8 +8,10 @@ import { BackLink, ModalTrigger, Notice, PageHeader } from "@/shared/ui";
 
 export default async function ProductDetailPage(props: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ imageError?: string }>;
 }) {
   const params = await props.params;
+  const searchParams = (await props.searchParams) ?? {};
   const { item, error } = await getProductDetail(params.id);
 
   if (!item && !error) {
@@ -42,7 +44,7 @@ export default async function ProductDetailPage(props: {
       {error ? <Notice error>{error}</Notice> : null}
 
       <div className="two-column">
-        <ProductSummaryPanel product={item} />
+        <ProductSummaryPanel product={item} imageError={searchParams.imageError ?? null} />
         <ProductVersionsPanel product={item} />
       </div>
     </div>
