@@ -6,3 +6,4 @@ export const ATTACHMENTS_TABLE = "attachments";
 export const HISTORY_EVENTS_TABLE = "history_events";
 export const APP_SETTINGS_TABLE = "app_settings";
 export const INVENTORY_LOTS_TABLE = "inventory_lots";
+export const USER_ROLES_TABLE = "user_roles";

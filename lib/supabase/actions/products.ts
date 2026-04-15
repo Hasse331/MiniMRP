@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdminAction } from "@/lib/auth/require-admin";
 import { PRODUCT_IMAGE_MAX_BYTES, validateUploadedFile } from "@/lib/uploads/validation";
 import { createSupabaseAdminClient } from "../admin-client";
 import { createSupabaseClient } from "../client";
@@ -8,6 +9,7 @@ import { PRIVATE_SCHEMA, PRODUCT_VERSIONS_TABLE } from "../table-names";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function createProductAction(formData: FormData) {
+  await requireAdminAction("/products");
   const supabase = await createSupabaseClient();
   const name = requiredValue(formData.get("name"), "Product name");
 
@@ -37,6 +39,7 @@ export async function createProductAction(formData: FormData) {
 }
 
 export async function createVersionAction(formData: FormData) {
+  await requireAdminAction("/products");
   const supabase = createSupabaseAdminClient();
   const productId = requiredValue(formData.get("product_id"), "Product id");
   const versionNumber = requiredValue(formData.get("version_number"), "Version number");
@@ -68,6 +71,7 @@ export async function createVersionAction(formData: FormData) {
 }
 
 export async function updateProductAction(formData: FormData) {
+  await requireAdminAction("/products");
   const supabase = await createSupabaseClient();
   const id = requiredValue(formData.get("id"), "Product id");
   const name = requiredValue(formData.get("name"), "Product name");
@@ -96,6 +100,7 @@ export async function updateProductAction(formData: FormData) {
 }
 
 export async function uploadProductImageAction(formData: FormData) {
+  await requireAdminAction("/products");
   const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Product id");
   const file = formData.get("file");
@@ -171,6 +176,7 @@ export async function uploadProductImageAction(formData: FormData) {
 }
 
 export async function removeProductImageAction(formData: FormData) {
+  await requireAdminAction("/products");
   const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Product id");
   const previous = await supabase.from("products").select("id,name,image").eq("id", id).maybeSingle();

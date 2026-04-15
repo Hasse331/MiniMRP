@@ -24,7 +24,7 @@ Run these files in Supabase SQL Editor in this order:
 
 - This package is production-only.
 - Demo SQL stays under `supabase/live-demo/`.
-- Current application code still needs a later refactor to fully use the `private` schema and authenticated access flow.
+- `02_grants.sql` removes blanket `authenticated` grants; the explicit public-table grants are applied later in `32_policies_public.sql` together with admin RLS.
 - After creating your first auth user, run the helper in `40_seed_admin_support.sql` to mark that user as the first admin.
 
 ## Supabase Auth Checklist

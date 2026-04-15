@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdminAction } from "@/lib/auth/require-admin";
 import { parseSpreadsheetFile, normalizeMasterDataRows } from "@/lib/import/master-data";
 import { syncInventorySummariesForComponents } from "./inventory-summary";
 import { createSupabaseAdminClient } from "../admin-client";
@@ -7,6 +8,7 @@ import { APP_SETTINGS_TABLE, INVENTORY_LOTS_TABLE, PRIVATE_SCHEMA } from "../tab
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function updateDefaultSafetyStockAction(formData: FormData) {
+  await requireAdminAction("/settings");
   const supabase = createSupabaseAdminClient();
   const value = Number(requiredValue(formData.get("default_safety_stock"), "Default safety stock"));
   const previous = await supabase
@@ -44,6 +46,7 @@ export async function updateDefaultSafetyStockAction(formData: FormData) {
 }
 
 export async function importMasterDataAction(formData: FormData) {
+  await requireAdminAction("/settings");
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     redirectImportError("Import file is required.");

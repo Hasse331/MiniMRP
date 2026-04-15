@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdminAction } from "@/lib/auth/require-admin";
 import { buildVersionBomReferenceRows, normalizeVersionBomRows, parseVersionBomFile } from "@/lib/import/version-bom";
 import { normalizeReferencesInput } from "@/lib/mappers/bom";
 import { VERSION_ATTACHMENT_MAX_BYTES, validateUploadedFile } from "@/lib/uploads/validation";
@@ -9,6 +10,7 @@ import { ATTACHMENTS_TABLE, COMPONENT_REFERENCES_TABLE, PRIVATE_SCHEMA, PRODUCT_
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function importVersionBomAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const file = formData.get("file");
@@ -87,6 +89,7 @@ export async function importVersionBomAction(formData: FormData) {
 }
 
 export async function attachPartToVersionAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
@@ -120,6 +123,7 @@ export async function attachPartToVersionAction(formData: FormData) {
 }
 
 export async function removePartFromVersionAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
@@ -158,6 +162,7 @@ export async function removePartFromVersionAction(formData: FormData) {
 }
 
 export async function updateVersionComponentReferencesAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
@@ -211,6 +216,7 @@ export async function updateVersionComponentReferencesAction(formData: FormData)
 }
 
 export async function updateVersionAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Version id");
   const versionNumber = requiredValue(formData.get("version_number"), "Version number");
@@ -247,6 +253,7 @@ export async function updateVersionAction(formData: FormData) {
 }
 
 export async function uploadVersionAttachmentAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const file = formData.get("file");
@@ -313,6 +320,7 @@ export async function uploadVersionAttachmentAction(formData: FormData) {
 }
 
 export async function deleteVersionAttachmentAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const attachmentId = requiredValue(formData.get("attachment_id"), "Attachment id");
@@ -356,6 +364,7 @@ export async function deleteVersionAttachmentAction(formData: FormData) {
 }
 
 export async function deleteVersionAction(formData: FormData) {
+  await requireAdminAction("/versions");
   const supabase = createSupabaseAdminClient();
   const id = requiredValue(formData.get("id"), "Version id");
   const productId = requiredValue(formData.get("product_id"), "Product id");
