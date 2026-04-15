@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdminAction } from "@/lib/auth/require-admin";
 import { consumeInventoryLotsFifo } from "@/lib/mappers/inventory-lots";
 import type { InventoryLot } from "@/lib/types/domain";
 import { INVENTORY_LOTS_TABLE } from "../table-names";
@@ -10,6 +11,7 @@ import { recordHistory, optionalValue, redirect, revalidatePath, requiredValue, 
 const QUANTITY_EPSILON = 0.000001;
 
 export async function addInventoryAction(formData: FormData) {
+  await requireAdminAction("/inventory");
   const supabase = await createSupabaseClient();
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const quantity = parsePositiveNumber(formData.get("quantity_received"), "Quantity");
@@ -57,6 +59,7 @@ export async function addInventoryAction(formData: FormData) {
 }
 
 export async function adjustInventoryDeltaAction(formData: FormData) {
+  await requireAdminAction("/inventory");
   const supabase = await createSupabaseClient();
   const componentId = requiredValue(formData.get("component_id"), "Component id");
   const mode = requiredValue(formData.get("mode"), "Mode") as "add" | "remove";
@@ -156,6 +159,7 @@ export async function adjustInventoryDeltaAction(formData: FormData) {
 }
 
 export async function updateInventoryLotAction(formData: FormData) {
+  await requireAdminAction("/inventory");
   const supabase = await createSupabaseClient();
   const id = requiredValue(formData.get("id"), "Inventory lot id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");
@@ -248,6 +252,7 @@ function parsePositiveNumber(value: FormDataEntryValue | null, field: string) {
 }
 
 export async function deleteInventoryLotAction(formData: FormData) {
+  await requireAdminAction("/inventory");
   const supabase = await createSupabaseClient();
   const id = requiredValue(formData.get("id"), "Inventory lot id");
   const componentId = requiredValue(formData.get("component_id"), "Component id");

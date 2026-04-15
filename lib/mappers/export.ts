@@ -6,12 +6,15 @@ export function rowsToCsv(rows: Array<Record<string, string | number | null>>) {
   const headers = Object.keys(rows[0]);
   const escapeCell = (value: string | number | null) => {
     const stringValue = value === null ? "" : String(value);
-    if (stringValue.includes(",") || stringValue.includes("\"") || stringValue.includes("\n")) {
-      return `"${stringValue.replaceAll("\"", "\"\"")}"`;
+    const sanitizedValue =
+      typeof value === "string" && /^[=+\-@]/.test(stringValue)
+        ? `'${stringValue}`
+        : stringValue;
+    if (sanitizedValue.includes(",") || sanitizedValue.includes("\"") || sanitizedValue.includes("\n")) {
+      return `"${sanitizedValue.replaceAll("\"", "\"\"")}"`;
     }
-    return stringValue;
+    return sanitizedValue;
   };
 
   return [headers.join(","), ...rows.map((row) => headers.map((header) => escapeCell(row[header] ?? "")).join(","))].join("\n");
 }
-

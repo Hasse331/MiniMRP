@@ -1,5 +1,6 @@
 "use server";
 
+import { requireAdminAction } from "@/lib/auth/require-admin";
 import { buildMrpRows, reserveInventoryForProduction } from "@/lib/mappers/mrp";
 import { consumeInventoryLotsFifo } from "@/lib/mappers/inventory-lots";
 import { planProductionCompletionConsumption } from "@/lib/mappers/production";
@@ -12,6 +13,7 @@ import { syncInventorySummaryForComponent } from "./inventory-summary";
 import { recordHistory, redirect, revalidatePath, requiredValue, stringifyHistoryValue } from "./shared";
 
 export async function addProductionEntryAction(formData: FormData) {
+  await requireAdminAction("/production");
   const supabase = await createSupabaseClient();
   const versionId = requiredValue(formData.get("version_id"), "Version id");
   const quantity = Math.max(Number(requiredValue(formData.get("quantity"), "Quantity")), 1);
@@ -121,6 +123,7 @@ export async function addProductionEntryAction(formData: FormData) {
 }
 
 export async function cancelProductionEntryAction(formData: FormData) {
+  await requireAdminAction("/production");
   const supabase = await createSupabaseClient();
   const productionEntryId = requiredValue(formData.get("production_entry_id"), "Production entry id");
 
@@ -205,6 +208,7 @@ export async function cancelProductionEntryAction(formData: FormData) {
 }
 
 export async function completeProductionEntryAction(formData: FormData) {
+  await requireAdminAction("/production");
   const supabase = await createSupabaseClient();
   const productionEntryId = requiredValue(formData.get("production_entry_id"), "Production entry id");
 

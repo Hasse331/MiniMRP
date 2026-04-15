@@ -1,3 +1,12 @@
+grant select, insert, update, delete on table public.products to authenticated;
+grant select, insert, update, delete on table public.components to authenticated;
+grant select, insert, update, delete on table public.sellers to authenticated;
+grant select, insert, update, delete on table public.component_sellers to authenticated;
+grant select, insert, update, delete on table public.inventory to authenticated;
+grant select, insert, update, delete on table public.inventory_lots to authenticated;
+grant select, insert, update, delete on table public.production_entries to authenticated;
+grant select, insert, update, delete on table public.production_requirements to authenticated;
+
 drop policy if exists "admin can read products" on public.products;
 drop policy if exists "admin can insert products" on public.products;
 drop policy if exists "admin can update products" on public.products;

@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { FORBIDDEN_PATH, resolveAdminAccessFailure } from "@/lib/auth/admin-access";
+import { isUserAdmin } from "@/lib/auth/admin-state";
 import { getProtectedRedirectPath, getPostLoginRedirectPath, isPublicAuthPath } from "@/lib/auth/redirects";
 
 export async function middleware(request: NextRequest) {
@@ -40,7 +42,8 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname, searchParams } = request.nextUrl;
-  const isPublicPath = isPublicAuthPath(pathname);
+  const isLoginPath = isPublicAuthPath(pathname);
+  const isPublicPath = isLoginPath || pathname === FORBIDDEN_PATH;
 
   if (!user && !isPublicPath) {
     if (pathname.startsWith("/api/")) {
@@ -50,9 +53,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(getProtectedRedirectPath(pathname), request.url));
   }
 
-  if (user && isPublicPath) {
+  if (user && isLoginPath) {
     const nextPath = searchParams.get("next");
     return NextResponse.redirect(new URL(getPostLoginRedirectPath(nextPath), request.url));
+  }
+
+  if (user && !isPublicPath) {
+    const resolution = resolveAdminAccessFailure({
+      pathname,
+      isAuthenticated: true,
+      isAdmin: await isUserAdmin(user.id),
+      kind: pathname.startsWith("/api/") ? "api" : "page"
+    });
+
+    if (resolution.kind === "api-error") {
+      return NextResponse.json({ error: resolution.message }, { status: resolution.status });
+    }
+
+    if (resolution.kind === "redirect") {
+      return NextResponse.redirect(new URL(resolution.location, request.url));
+    }
   }
 
   return response;

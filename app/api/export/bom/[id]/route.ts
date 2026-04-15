@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { requireAdminApiAccess } from "@/lib/auth/require-admin";
 import { rowsToCsv } from "@/lib/mappers/export";
 import { getVersionDetail } from "@/lib/supabase/queries/index";
 
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
+  const adminResponse = await requireAdminApiAccess("/api/export/bom");
+  if (adminResponse) {
+    return adminResponse;
+  }
+
   const params = await context.params;
   const { item } = await getVersionDetail(params.id);
 

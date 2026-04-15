@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname === "/forbidden") {
     return <main className="content">{children}</main>;
   }
 
