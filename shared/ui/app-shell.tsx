@@ -1,6 +1,6 @@
 "use client";
 
-import { AgenticFixLoop } from "@agentic-fix-loop/widget";
+import { AgenticFixLoop } from "@hansimb/fix-loop-widget";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { startTransition, type ReactNode } from "react";
@@ -13,12 +13,12 @@ const navigation = [
   { href: "/production", label: "Production" },
   { href: "/purchasing", label: "Purchasing" },
   { href: "/settings", label: "Settings" },
-  { href: "/history", label: "History" }
+  { href: "/history", label: "History" },
 ];
 
 export function AppShell({
   children,
-  fixLoopProjectName
+  fixLoopProjectName,
 }: {
   children: ReactNode;
   fixLoopProjectName?: string;

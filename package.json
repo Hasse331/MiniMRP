@@ -10,10 +10,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test --test-isolation=none tests/*.test.ts",
-    "fixloop:pull": "node --env-file=.env.development ../agentic-fix-loop/packages/cli/dist/index.js pull"
+    "fixloop:pull": "node --env-file=.env.development ./node_modules/@hansimb/fix-loop-cli/dist/index.js pull"
   },
   "dependencies": {
-    "@agentic-fix-loop/widget": "file:../agentic-fix-loop/packages/widget",
+    "@hansimb/fix-loop-widget": "^0.1.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.101.1",
     "next": "^15.5.4",
@@ -24,6 +24,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@hansimb/fix-loop-cli": "^0.1.0",
     "@types/node": "^24.5.2",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^19.1.13",
