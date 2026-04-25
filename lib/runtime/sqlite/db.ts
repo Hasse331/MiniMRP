@@ -35,6 +35,10 @@ export function getDesktopDatabase() {
   return desktopDatabase;
 }
 
+export function setDesktopDatabaseForTests(db: DatabaseSync) {
+  desktopDatabase = db;
+}
+
 export function resetDesktopDatabaseForTests() {
   desktopDatabase?.close();
   desktopDatabase = null;
