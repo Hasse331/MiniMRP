@@ -1,7 +1,7 @@
-import { getRuntimeMode } from "./env.ts";
+import { getBrowserRuntimeMode } from "./env.ts";
 
 export async function createRuntimeBrowserClient() {
-  const runtimeMode = getRuntimeMode();
+  const runtimeMode = getBrowserRuntimeMode();
 
   if (runtimeMode === "sqlite") {
     const runtimeAuth = await import("./sqlite/browser-auth.ts");
