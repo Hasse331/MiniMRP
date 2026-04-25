@@ -37,3 +37,8 @@ test("shared app does not import supabase queries or actions directly", () => {
 
   assert.deepEqual(offendingFiles, []);
 });
+
+test("desktop wrapper exists without duplicating app routes", () => {
+  assert.equal(fs.existsSync("desktop/electron/main.mjs"), true);
+  assert.equal(fs.existsSync("desktop/app"), false);
+});

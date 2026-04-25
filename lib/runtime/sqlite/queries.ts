@@ -64,7 +64,14 @@ function oneRow<T>(sql: string, params: Record<string, SQLInputValue> = {}) {
 }
 
 function resolveStoredFileUrl(storedPath: string | null) {
-  return storedPath;
+  if (!storedPath) {
+    return null;
+  }
+
+  return `/api/files/${storedPath
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")}`;
 }
 
 function getAllProducts() {

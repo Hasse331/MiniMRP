@@ -4,7 +4,8 @@ import { AgenticFixLoop } from "@hansimb/fix-loop-widget";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { startTransition, type ReactNode } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser-client";
+import { createRuntimeBrowserClient } from "@/lib/runtime/browser-client";
+import { getPostLogoutRedirectPath } from "@/lib/auth/redirects";
 
 const navigation = [
   { href: "/products", label: "Products" },
@@ -50,9 +51,9 @@ export function AppShell({
             className="nav-action"
             onClick={() =>
               startTransition(async () => {
-                const supabase = createSupabaseBrowserClient();
+                const supabase = await createRuntimeBrowserClient();
                 await supabase.auth.signOut();
-                router.replace("/login");
+                router.replace(getPostLogoutRedirectPath());
                 router.refresh();
               })
             }
