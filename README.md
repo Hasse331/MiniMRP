@@ -58,7 +58,8 @@ npm install
 
 2. Choose the runtime path you are working on:
 
-- Preferred: desktop / local-first runtime work
+- Preferred for fast daily development: SQLite in the browser
+- Desktop development when Electron-specific behavior needs testing
 - Legacy only: deprecated Supabase runtime
 
 3. If you are explicitly working on the deprecated Supabase runtime, add your Supabase keys to `.env`:
@@ -80,11 +81,13 @@ AGENTIC_FIX_LOOP_SUPABASE_SERVICE_ROLE_KEY=
 
 4. Start the app:
 
-web:
+Fast browser development with SQLite and hot reload:
 
 ```bash
 npm run dev
 ```
+
+The explicit equivalent is `npm run dev:web`. Neither command builds or opens Electron.
 
 5. Open `http://localhost:3000`
 

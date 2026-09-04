@@ -5,7 +5,9 @@
   "type": "module",
   "main": "desktop/electron/packaged-main.mjs",
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run dev:web",
+    "dev:web": "node scripts/dev-web.mjs",
+    "dev:next": "next dev",
     "dev:desktop": "node desktop/scripts/dev.mjs",
     "build": "next build",
     "build:desktop": "node desktop/scripts/build.mjs",
