@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { MrpRow } from "@/lib/mappers/mrp";
 import { addProductionEntryAction } from "@/lib/runtime/actions";
-import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
+import { EmptyState, InfoTooltip, ModalTrigger, Panel } from "@/shared/ui";
 
 export function VersionMrpPanel(props: {
   versionId: string;
@@ -25,6 +25,7 @@ export function VersionMrpPanel(props: {
 }) {
   const [draftQuantity, setDraftQuantity] = useState(String(props.requestedQuantity));
   const hasEstimatedUnitPrices = props.rows.some((row) => row.unitPriceIsEstimate);
+  const isProductionEntryView = props.rows.some((row) => row.reservedForEntry !== null);
 
   const pendingQuantity = useMemo(() => {
     const parsed = Number(draftQuantity);
@@ -90,6 +91,14 @@ export function VersionMrpPanel(props: {
         <EmptyState>No components available for MRP calculation.</EmptyState>
       ) : (
         <div className="table-wrap">
+          {isProductionEntryView ? (
+            <div className="notice mrp-snapshot-notice">
+              This view includes a saved production-entry snapshot from when
+              the entry was created. Purchasing uses current inventory to
+              recalculate the remaining shortage, so its Net need can be
+              lower.
+            </div>
+          ) : null}
           <table>
             <thead>
               <tr>
@@ -100,9 +109,28 @@ export function VersionMrpPanel(props: {
                 <th>Available</th>
                 <th>Gross</th>
                 <th>Net</th>
-                <th title="How much this calculation could reserve immediately from current available stock.">Can reserve</th>
-                <th title="Already reserved for the currently selected production entry, when this page is opened from Production.">Res. entry</th>
-                <th title="Total already reserved across active production entries for this version.">Res. active</th>
+                <th>
+                  Can reserve
+                  <InfoTooltip label="More information about Can reserve">
+                    Stock this calculation can allocate immediately. For a
+                    saved production entry, this is the amount allocated when
+                    the entry was created.
+                  </InfoTooltip>
+                </th>
+                <th>
+                  Res. entry
+                  <InfoTooltip label="More information about Res. entry">
+                    Stock reserved for the production entry currently being
+                    viewed.
+                  </InfoTooltip>
+                </th>
+                <th>
+                  Res. active
+                  <InfoTooltip label="More information about Res. active">
+                    Total stock reserved across active production entries for
+                    this product version.
+                  </InfoTooltip>
+                </th>
                 <th>Lead time</th>
                 <th>Unit price</th>
                 <th>Gross cost</th>
