@@ -64,7 +64,11 @@ export function VersionPartsPanel(props: {
               {props.version.components.map((row) => (
                 <tr key={row.component.id}>
                   <td>{row.component.sku}</td>
-                  <td>{row.component.name}</td>
+                  <td>
+                    <Link className="table-link" href={`/components/${row.component.id}`}>
+                      {row.component.name}
+                    </Link>
+                  </td>
                   <td>{row.component.category}</td>
                   <td>{row.component.producer}</td>
                   <td>{row.component.value ?? "-"}</td>

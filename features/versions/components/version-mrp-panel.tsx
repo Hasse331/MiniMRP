@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { MrpRow } from "@/lib/mappers/mrp";
 import { addProductionEntryAction } from "@/lib/runtime/actions";
 import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
@@ -113,7 +114,11 @@ export function VersionMrpPanel(props: {
                 <tr key={`mrp-${row.componentId}`}>
                   <td>{row.sku}</td>
                   <td>
-                    <div>{row.componentName}</div>
+                    <div>
+                      <Link className="table-link" href={`/components/${row.componentId}`}>
+                        {row.componentName}
+                      </Link>
+                    </div>
                     {(row.activeProductionQuantity ?? 0) > 0 ? (
                       <div className="small muted">
                         Across active production entries: qty {row.activeProductionQuantity ?? 0}

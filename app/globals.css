@@ -33,6 +33,19 @@ a {
   text-decoration: none;
 }
 
+.table-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+
+.table-link:hover,
+.table-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
 button,
 input,
 select {

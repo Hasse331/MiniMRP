@@ -1,4 +1,5 @@
 import type { PurchasingItem } from "@/lib/types/domain";
+import Link from "next/link";
 import { normalizeExternalUrl } from "@/lib/mappers/urls";
 import { updatePartSafetyStockAction, upsertPartSellerLinkAction } from "@/lib/runtime/actions";
 import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
@@ -30,7 +31,11 @@ export function NearSafetyPanel(props: { items: PurchasingItem[] }) {
               {props.items.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <div>{item.name}</div>
+                    <div>
+                      <Link className="table-link" href={`/components/${item.id}`}>
+                        {item.name}
+                      </Link>
+                    </div>
                     <div className="small muted">{item.sku}</div>
                   </td>
                   <td>{item.category}</td>

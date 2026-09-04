@@ -1,4 +1,5 @@
 import type { ProductionShortageGroup } from "@/lib/types/domain";
+import Link from "next/link";
 import { normalizeExternalUrl } from "@/lib/mappers/urls";
 import { upsertPartSellerLinkAction } from "@/lib/runtime/actions";
 import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
@@ -47,7 +48,11 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                     {group.items.map((item) => (
                       <tr key={`${group.production_entry_id}-${item.id}`}>
                         <td>
-                          <div>{item.name}</div>
+                          <div>
+                            <Link className="table-link" href={`/components/${item.id}`}>
+                              {item.name}
+                            </Link>
+                          </div>
                           <div className="small muted">{item.sku}</div>
                         </td>
                         <td>{item.category}</td>
