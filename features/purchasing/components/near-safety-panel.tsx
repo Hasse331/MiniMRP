@@ -20,6 +20,7 @@ export function NearSafetyPanel(props: { items: PurchasingItem[] }) {
                 <th>Category</th>
                 <th>Available</th>
                 <th>Safety stock</th>
+                <th>Recommended order</th>
                 <th>Lead time</th>
                 <th>Seller</th>
                 <th>Actions</th>
@@ -35,6 +36,7 @@ export function NearSafetyPanel(props: { items: PurchasingItem[] }) {
                   <td>{item.category}</td>
                   <td>{item.quantity_available}</td>
                   <td>{item.safety_stock}</td>
+                  <td>{item.recommended_order_quantity}</td>
                   <td>{item.lead_time ?? "-"}</td>
                   <td>
                     {normalizeExternalUrl(item.seller_product_url ?? item.seller_base_url) ? (

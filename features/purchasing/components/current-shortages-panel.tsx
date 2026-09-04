@@ -34,8 +34,8 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                       <th>Category</th>
                       <th>Gross requirement</th>
                       <th>Reserved</th>
-                      <th>Net need</th>
                       <th>Available</th>
+                      <th>Net need</th>
                       <th>Safety stock</th>
                       <th>Recommended order</th>
                       <th>Lead time</th>
@@ -53,8 +53,8 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                         <td>{item.category}</td>
                         <td>{item.gross_requirement}</td>
                         <td>{item.reserved_inventory}</td>
-                        <td>{item.net_need}</td>
                         <td>{item.quantity_available}</td>
+                        <td>{item.net_need}</td>
                         <td>{item.safety_stock}</td>
                         <td>{item.recommended_order_quantity}</td>
                         <td>{item.lead_time ?? "-"}</td>

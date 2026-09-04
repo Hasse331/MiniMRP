@@ -205,7 +205,7 @@ export function buildPurchasingBuckets<T extends {
     )
     .map((item) => ({
       ...item,
-      recommended_order_quantity: 0
+      recommended_order_quantity: Math.max(item.safety_stock * 2 - item.quantity_available, 0)
     }))
     .sort((left, right) => left.quantity_available - right.quantity_available);
 

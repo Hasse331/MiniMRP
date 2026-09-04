@@ -325,6 +325,24 @@ test("buildPurchasingBuckets uses a configurable percentage above safety stock f
   assert.equal(result.nearSafety[0]?.id, "1");
 });
 
+test("buildPurchasingBuckets recommends restoring near-safety stock to twice the safety level", () => {
+  const result = buildPurchasingBuckets([
+    {
+      id: "component-1",
+      name: "Relay 5V G6K",
+      category: "Relay",
+      producer: "Omron",
+      value: "5V",
+      safety_stock: 25,
+      quantity_available: 26,
+      purchase_price: 1.76,
+      lead_time: 2
+    }
+  ]);
+
+  assert.equal(result.nearSafety[0]?.recommended_order_quantity, 24);
+});
+
 test("buildProductionShortageMetrics clears current shortage when available inventory now covers the stored net need", () => {
   const metrics = buildProductionShortageMetrics({
     totalGrossRequirement: 40,
