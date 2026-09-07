@@ -4,9 +4,9 @@ MiniMRP is a small internal MRP (material requirements planning) system for smal
 
 ## Status Note
 
-- `desktop` is a primary runtime and the main maintained application target
-- `local web` is the planned primary hosted/runtime direction for ready-to-use live usage without a managed backend
-- `supabase` runtime is deprecated and is no longer the recommended deployment path
+- Local web development and the desktop app use the same SQLite runtime
+- Docker packages that same Next.js and SQLite application for live deployments
+- No separately hosted database or database credentials are required
 
 ## Main Features
 
@@ -22,9 +22,9 @@ MiniMRP is a small internal MRP (material requirements planning) system for smal
 
 ## Runtimes
 
-- Local desktop version using local SQLite
-- Local web version is the intended hosted direction
-- Deprecated Supabase-backed web runtime kept only for legacy compatibility during transition
+- Local web version using SQLite with Next.js hot reload
+- Local desktop version using the same SQLite runtime through Electron
+- Docker-hosted web version using the same application and SQLite runtime
 
 ## How It Works
 
@@ -39,11 +39,8 @@ MiniMRP is a small internal MRP (material requirements planning) system for smal
 - [`app`](./app): Next.js routes and thin page-level composition
 - [`features`](./features): feature-specific UI and page sections
 - [`shared/ui`](./shared/ui): reusable UI building blocks shared across features
-- [`lib/runtime`](./lib/runtime): shared runtime boundary for maintained local-first paths and legacy adapters
-- [`lib/supabase/actions`](./lib/supabase/actions): server actions grouped by domain
-- [`lib/supabase/queries`](./lib/supabase/queries): read-side data access grouped by domain
+- [`lib/runtime`](./lib/runtime): shared SQLite queries, actions, authentication, and file storage
 - [`lib/mappers`](./lib/mappers): calculation and transformation logic such as MRP
-- [`supabase`](./supabase): schema and seed SQL
 - [`tests`](./tests): focused logic-level tests
 
 Note about naming: the business domain still uses the `/components` route in the UI, but the internal feature code is named `parts` to avoid confusion with reusable UI components.
@@ -56,30 +53,9 @@ Note about naming: the business domain still uses the `/components` route in the
 npm install
 ```
 
-2. Choose the runtime path you are working on:
+2. No database environment variables are required.
 
-- Preferred for fast daily development: SQLite in the browser
-- Desktop development when Electron-specific behavior needs testing
-- Legacy only: deprecated Supabase runtime
-
-3. If you are explicitly working on the deprecated Supabase runtime, add your Supabase keys to `.env`:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=
-SUPABASE_SECRET_KEY=
-
-# Optional fixloop integration:
-ENABLE_FIXLOOP=false
-AGENTIC_FIX_LOOP_PROJECT_NAME=
-NEXT_PUBLIC_AGENTIC_FIX_LOOP_SUPABASE_URL=
-NEXT_PUBLIC_AGENTIC_FIX_LOOP_SUPABASE_ANON_KEY=
-AGENTIC_FIX_LOOP_SUPABASE_SERVICE_ROLE_KEY=
-```
-
-3. Run schema sqripts in supabase/production in your Supabase SQL Editor
-
-4. Start the app:
+3. Start the app:
 
 Fast browser development with SQLite and hot reload:
 
@@ -89,7 +65,7 @@ npm run dev
 
 The explicit equivalent is `npm run dev:web`. Neither command builds or opens Electron.
 
-5. Open `http://localhost:3000`
+4. Open the URL printed by the command, normally `http://localhost:3000`.
 
 windows desktop:
 
@@ -97,25 +73,12 @@ windows desktop:
 npm run dev:desktop
 ```
 
-5. App opens on your windows desktop
-
-## Deprecated Supabase Runtime
-
-The Supabase runtime remains in the repository only as a legacy compatibility path during transition work.
-
-- It is deprecated
-- It is not the recommended deployment target
-- It should not be chosen for new live environments
-- Desktop and local-first web are the maintained directions
-
-## Storage Setup
-
-- Create private bucket `version-attachments`
-- Create private bucket `product-images`
+5. The app opens on your Windows desktop.
 
 ## Useful Scripts
 
 - `npm run dev`
+- `npm run dev:web`
 - `npm run dev:desktop`
 - `npm run build`
 - `npm run build:desktop`

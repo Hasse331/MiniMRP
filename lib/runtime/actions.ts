@@ -1,16 +1,9 @@
 "use server";
 
-import { getRuntimeMode } from "./env.ts";
 import type { RuntimeActions } from "./contracts.ts";
 
 async function getRuntimeActionsModule(): Promise<RuntimeActions> {
-  const runtimeMode = getRuntimeMode();
-
-  if (runtimeMode === "sqlite") {
-    return (await import("./sqlite/actions.ts")) as RuntimeActions;
-  }
-
-  return (await import("./supabase/actions.ts")) as RuntimeActions;
+  return (await import("./sqlite/actions.ts")) as RuntimeActions;
 }
 
 export async function addInventoryAction(formData: FormData) {

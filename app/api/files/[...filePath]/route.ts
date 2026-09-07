@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { requireAdminApiAccess } from "@/lib/auth/require-admin";
-import { getRuntimeMode } from "@/lib/runtime";
 import { getDesktopDataDirectory } from "@/lib/runtime/sqlite/files";
 
 const MIME_TYPES = new Map([
@@ -29,10 +28,6 @@ export async function GET(
   const adminResponse = await requireAdminApiAccess("/api/files");
   if (adminResponse) {
     return adminResponse;
-  }
-
-  if (getRuntimeMode() !== "sqlite") {
-    return NextResponse.json({ error: "Local files are only available in sqlite runtime." }, { status: 404 });
   }
 
   const params = await context.params;
