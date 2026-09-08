@@ -187,14 +187,27 @@ export function buildPurchasingBuckets<T extends {
   lead_time: number | null;
 }>(items: T[], options?: { nearSafetyThresholdPercent?: number }) {
   const nearSafetyThresholdPercent = options?.nearSafetyThresholdPercent ?? 10;
+  const withRecommendedOrderRange = (item: T) => {
+    const recommendedOrderMinQuantity = Math.max(
+      item.safety_stock - item.quantity_available,
+      0
+    );
+    const recommendedOrderMaxQuantity = Math.max(
+      item.safety_stock * 2 - item.quantity_available,
+      0
+    );
+
+    return {
+      ...item,
+      recommended_order_min_quantity: recommendedOrderMinQuantity,
+      recommended_order_max_quantity: recommendedOrderMaxQuantity,
+      recommended_order_quantity: recommendedOrderMaxQuantity
+    };
+  };
 
   const outOfStock = items
     .filter((item) => item.quantity_available <= 0)
-    .map((item) => ({
-      ...item,
-      recommended_order_quantity:
-        Math.max(item.safety_stock - item.quantity_available, 0) + item.safety_stock
-    }))
+    .map(withRecommendedOrderRange)
     .sort((left, right) => left.quantity_available - right.quantity_available);
 
   const nearSafety = items
@@ -203,10 +216,7 @@ export function buildPurchasingBuckets<T extends {
         item.quantity_available > 0 &&
         item.quantity_available <= item.safety_stock * (1 + nearSafetyThresholdPercent / 100)
     )
-    .map((item) => ({
-      ...item,
-      recommended_order_quantity: 0
-    }))
+    .map(withRecommendedOrderRange)
     .sort((left, right) => left.quantity_available - right.quantity_available);
 
   return { nearSafety, outOfStock };
@@ -253,11 +263,16 @@ export function buildProductionShortageMetrics(input: {
   safetyStock: number;
 }) {
   const currentNetNeed = Math.max(input.totalNetRequirement - input.availableInventory, 0);
-  const recommendedOrderQuantity = currentNetNeed > 0 ? currentNetNeed + input.safetyStock : 0;
+  const recommendedOrderMinQuantity =
+    currentNetNeed > 0 ? currentNetNeed + input.safetyStock : 0;
+  const recommendedOrderMaxQuantity =
+    currentNetNeed > 0 ? currentNetNeed + input.safetyStock * 2 : 0;
 
   return {
     netNeed: currentNetNeed,
-    recommendedOrderQuantity
+    recommendedOrderQuantity: recommendedOrderMinQuantity,
+    recommendedOrderMinQuantity,
+    recommendedOrderMaxQuantity
   };
 }
 

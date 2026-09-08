@@ -1,11 +1,13 @@
 {
   "name": "minimrp",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "type": "module",
   "main": "desktop/electron/packaged-main.mjs",
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run dev:web",
+    "dev:web": "node scripts/dev-web.mjs",
+    "dev:next": "next dev",
     "dev:desktop": "node desktop/scripts/dev.mjs",
     "build": "next build",
     "build:desktop": "node desktop/scripts/build.mjs",
@@ -16,13 +18,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test --test-isolation=none tests/*.test.ts",
-    "db:reset:seed": "node --experimental-strip-types scripts/reset-seed-desktop-sqlite.ts",
-    "fixloop:pull": "node --env-file=.env.development ./node_modules/@hansimb/fix-loop-cli/dist/index.js pull"
+    "db:reset:seed": "node --experimental-strip-types scripts/reset-seed-desktop-sqlite.ts"
   },
   "dependencies": {
-    "@hansimb/fix-loop-widget": "^0.1.0",
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.101.1",
     "next": "^15.5.4",
     "papaparse": "^5.5.3",
     "react": "^19.1.1",
@@ -31,7 +29,6 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@hansimb/fix-loop-cli": "^0.1.0",
     "@types/node": "^24.5.2",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^19.1.13",

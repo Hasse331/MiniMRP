@@ -33,6 +33,19 @@ a {
   text-decoration: none;
 }
 
+.table-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+
+.table-link:hover,
+.table-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
 button,
 input,
 select {
@@ -515,6 +528,72 @@ th {
   border-radius: 14px;
   background:
     linear-gradient(180deg, var(--accent-soft) 0, var(--accent-soft) 64px, var(--panel-soft) 64px, var(--panel-soft) 100%);
+}
+
+.mrp-snapshot-notice {
+  margin-bottom: 12px;
+}
+
+.info-tooltip {
+  position: relative;
+  display: inline-flex;
+  margin-left: 5px;
+  vertical-align: middle;
+  outline: none;
+}
+
+.info-tooltip-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.info-tooltip-content {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #1f2937;
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: normal;
+}
+
+.table-wrap .info-tooltip-content {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.info-tooltip:hover .info-tooltip-content,
+.info-tooltip:focus .info-tooltip-content,
+.info-tooltip:focus-visible .info-tooltip-content {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.info-tooltip:focus-visible .info-tooltip-icon {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .production-shortage-card-head {

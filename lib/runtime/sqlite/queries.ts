@@ -472,6 +472,19 @@ export async function getPurchasingOverview(): Promise<{
 
     const productionShortages: ProductionShortageGroup[] = [];
     const productionShortageIds = new Set<string>();
+    const remainingAvailableByComponent = new Map(
+      components.map((component) => [
+        component.id,
+        inventoryMap.get(component.id)?.quantity_available ?? 0
+      ])
+    );
+
+    const allocateAvailableInventory = (componentId: string, requirement: number) => {
+      const available = remainingAvailableByComponent.get(componentId) ?? 0;
+      const allocated = Math.min(available, requirement);
+      remainingAvailableByComponent.set(componentId, Math.max(available - allocated, 0));
+      return allocated;
+    };
 
     if (requirements.length > 0) {
       for (const entry of activeEntries) {
@@ -484,10 +497,14 @@ export async function getPurchasingOverview(): Promise<{
             if (!component) {
               return null;
             }
+            const availableForRequirement = allocateAvailableInventory(
+              component.id,
+              item.net_requirement
+            );
             const metrics = buildProductionShortageMetrics({
               totalGrossRequirement: item.gross_requirement,
               totalNetRequirement: item.net_requirement,
-              availableInventory: inventoryMap.get(component.id)?.quantity_available ?? 0,
+              availableInventory: availableForRequirement,
               safetyStock: component.safety_stock
             });
             if (metrics.netNeed <= 0) {
@@ -543,7 +560,11 @@ export async function getPurchasingOverview(): Promise<{
           .map((component) => {
             const grossRequirement = component.quantity * entry.quantity;
             const quantityAvailable = component.inventory?.quantity_available ?? 0;
-            const netNeed = Math.max(grossRequirement - quantityAvailable, 0);
+            const availableForRequirement = allocateAvailableInventory(
+              component.component.id,
+              grossRequirement
+            );
+            const netNeed = Math.max(grossRequirement - availableForRequirement, 0);
             if (netNeed <= 0) {
               return null;
             }
@@ -590,6 +611,32 @@ export async function getPurchasingOverview(): Promise<{
       }
     }
 
+    const totalNetNeedByComponent = new Map<string, number>();
+    for (const group of productionShortages) {
+      for (const item of group.items) {
+        totalNetNeedByComponent.set(
+          item.id,
+          (totalNetNeedByComponent.get(item.id) ?? 0) + item.net_need
+        );
+      }
+    }
+
+    for (const group of productionShortages) {
+      for (const item of group.items) {
+        const recommendation = buildProductionShortageMetrics({
+          totalGrossRequirement: item.gross_requirement,
+          totalNetRequirement: totalNetNeedByComponent.get(item.id) ?? item.net_need,
+          availableInventory: 0,
+          safetyStock: item.safety_stock
+        });
+        item.recommended_order_quantity = recommendation.recommendedOrderQuantity;
+        item.recommended_order_min_quantity =
+          recommendation.recommendedOrderMinQuantity;
+        item.recommended_order_max_quantity =
+          recommendation.recommendedOrderMaxQuantity;
+      }
+    }
+
     productionShortages.sort((left, right) =>
       left.product_name.localeCompare(right.product_name)
       || left.build_quantity - right.build_quantity
@@ -619,17 +666,17 @@ export async function getPurchasingOverview(): Promise<{
     );
 
     const nearSafety: PurchasingItem[] = buckets.nearSafety
+      .filter((item) => !productionShortageIds.has(item.id))
       .map((component) => ({
         ...component,
         gross_requirement: 0,
         reserved_inventory: 0,
-        net_need: 0,
-        recommended_order_quantity: 0
+        net_need: 0
       }))
-      .filter((item) => !productionShortageIds.has(item.id))
       .sort((left, right) => left.quantity_available - right.quantity_available);
 
     const outOfStock: PurchasingItem[] = buckets.outOfStock
+      .filter((item) => !productionShortageIds.has(item.id))
       .map((component) => ({
         ...component,
         gross_requirement: 0,

@@ -1,13 +1,14 @@
 import type { PurchasingItem } from "@/lib/types/domain";
+import Link from "next/link";
 import { normalizeExternalUrl } from "@/lib/mappers/urls";
 import { updatePartSafetyStockAction, upsertPartSellerLinkAction } from "@/lib/runtime/actions";
-import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
+import { EmptyState, InfoTooltip, ModalTrigger, Panel } from "@/shared/ui";
 
 export function OutOfStockPanel(props: { items: PurchasingItem[] }) {
   return (
     <Panel
       title="Out of stock"
-      description="Components with zero inventory balance. Recommended order includes coverage back to safety stock."
+      description="Components with zero inventory balance, excluding active production shortages."
     >
       {props.items.length === 0 ? (
         <EmptyState>No out-of-stock components.</EmptyState>
@@ -20,7 +21,14 @@ export function OutOfStockPanel(props: { items: PurchasingItem[] }) {
                 <th>Category</th>
                 <th>Available</th>
                 <th>Safety stock</th>
-                <th>Recommended order</th>
+                <th>
+                  Recommended order
+                  <InfoTooltip label="How the recommended order range is calculated">
+                    Minimum restores stock to safety stock. Maximum restores
+                    stock to twice the safety stock. Available stock is
+                    subtracted from both limits.
+                  </InfoTooltip>
+                </th>
                 <th>Lead time</th>
                 <th>Seller</th>
                 <th>Actions</th>
@@ -30,13 +38,19 @@ export function OutOfStockPanel(props: { items: PurchasingItem[] }) {
               {props.items.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <div>{item.name}</div>
+                    <div>
+                      <Link className="table-link" href={`/components/${item.id}`}>
+                        {item.name}
+                      </Link>
+                    </div>
                     <div className="small muted">{item.sku}</div>
                   </td>
                   <td>{item.category}</td>
                   <td>{item.quantity_available}</td>
                   <td>{item.safety_stock}</td>
-                  <td>{item.recommended_order_quantity}</td>
+                  <td>
+                    {item.recommended_order_min_quantity ?? 0}–{item.recommended_order_max_quantity ?? item.recommended_order_quantity}
+                  </td>
                   <td>{item.lead_time ?? "-"}</td>
                   <td>
                     {normalizeExternalUrl(item.seller_product_url ?? item.seller_base_url) ? (

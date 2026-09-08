@@ -80,7 +80,15 @@ export function InventoryRowsPanel(props: {
               {props.items.map((item) => (
                 <tr key={item.id}>
                   <td>{item.component?.sku ?? "-"}</td>
-                  <td>{item.component?.name ?? "-"}</td>
+                  <td>
+                    {item.component ? (
+                      <Link className="table-link" href={`/components/${item.component_id}`}>
+                        {item.component?.name}
+                      </Link>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td>{item.component?.category ?? "-"}</td>
                   <td>{item.component?.producer ?? "-"}</td>
                   <td>{item.component?.value ?? "-"}</td>

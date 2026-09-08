@@ -41,12 +41,12 @@ test("seedSqliteDevDatabase builds a realistic non-empty desktop dataset", async
   assert.equal(purchasing.productionShortages.length >= 1, true);
   assert.equal(purchasing.productionShortages[0]?.items.length >= 1, true);
   assert.equal(purchasing.nearSafety.length >= 1, true);
-  assert.equal(purchasing.outOfStock.length >= 1, true);
 
   const productionShortageSkus = new Set(
     purchasing.productionShortages.flatMap((group) => group.items.map((item) => item.sku))
   );
   const nearSafetySkus = new Set(purchasing.nearSafety.map((item) => item.sku));
+  const outOfStockSkus = new Set(purchasing.outOfStock.map((item) => item.sku));
 
   assert.equal(productionShortageSkus.has("IC-OPA2134"), true);
   assert.equal(productionShortageSkus.has("RLY-5V-G6K"), true);
@@ -56,6 +56,10 @@ test("seedSqliteDevDatabase builds a realistic non-empty desktop dataset", async
   assert.equal(nearSafetySkus.has("RLY-5V-G6K"), false);
   assert.equal(nearSafetySkus.has("DSP-OLED-128X64"), true);
   assert.equal(nearSafetySkus.has("XTAL-24MHZ"), true);
+  assert.equal(
+    [...productionShortageSkus].some((sku) => outOfStockSkus.has(sku)),
+    false
+  );
 
   assert.equal(history.error, null);
   assert.equal(history.items.length >= 1, true);

@@ -1,13 +1,14 @@
 import type { ProductionShortageGroup } from "@/lib/types/domain";
+import Link from "next/link";
 import { normalizeExternalUrl } from "@/lib/mappers/urls";
 import { upsertPartSellerLinkAction } from "@/lib/runtime/actions";
-import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
+import { EmptyState, InfoTooltip, ModalTrigger, Panel } from "@/shared/ui";
 
 export function CurrentShortagesPanel(props: { shortages: ProductionShortageGroup[] }) {
   return (
     <Panel
       title="Production shortages"
-      description="Shortages grouped by active production entry. Net need is the missing quantity for that specific build."
+      description="Shortages grouped by active production entry. Net need is entry-specific; recommended order combines the component's need across all active entries."
     >
       {props.shortages.length === 0 ? (
         <EmptyState>No production shortages.</EmptyState>
@@ -34,10 +35,17 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                       <th>Category</th>
                       <th>Gross requirement</th>
                       <th>Reserved</th>
-                      <th>Net need</th>
                       <th>Available</th>
+                      <th>Net need</th>
                       <th>Safety stock</th>
-                      <th>Recommended order</th>
+                      <th>
+                        Recommended order
+                        <InfoTooltip label="How the production shortage recommendation is calculated">
+                          Combined Net need across all active production entries,
+                          plus one safety stock for the minimum or two safety
+                          stocks for the maximum.
+                        </InfoTooltip>
+                      </th>
                       <th>Lead time</th>
                       <th>Seller</th>
                       <th>Action</th>
@@ -47,16 +55,23 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                     {group.items.map((item) => (
                       <tr key={`${group.production_entry_id}-${item.id}`}>
                         <td>
-                          <div>{item.name}</div>
+                          <div>
+                            <Link className="table-link" href={`/components/${item.id}`}>
+                              {item.name}
+                            </Link>
+                          </div>
                           <div className="small muted">{item.sku}</div>
                         </td>
                         <td>{item.category}</td>
                         <td>{item.gross_requirement}</td>
                         <td>{item.reserved_inventory}</td>
-                        <td>{item.net_need}</td>
                         <td>{item.quantity_available}</td>
+                        <td>{item.net_need}</td>
                         <td>{item.safety_stock}</td>
-                        <td>{item.recommended_order_quantity}</td>
+                        <td>
+                          {item.recommended_order_min_quantity ?? item.recommended_order_quantity}–{item.recommended_order_max_quantity ?? item.recommended_order_quantity}
+                          <div className="small muted">Combined</div>
+                        </td>
                         <td>{item.lead_time ?? "-"}</td>
                         <td>
                           {normalizeExternalUrl(item.seller_product_url ?? item.seller_base_url) ? (

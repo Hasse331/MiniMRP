@@ -52,7 +52,11 @@ export function PartsListPanel(props: {
               {props.parts.map((part) => (
                 <tr key={part.id}>
                   <td>{part.sku}</td>
-                  <td>{part.name}</td>
+                  <td>
+                    <Link className="table-link" href={`/components/${part.id}`}>
+                      {part.name}
+                    </Link>
+                  </td>
                   <td>{part.category}</td>
                   <td>{part.producer}</td>
                   <td>{part.value ?? "-"}</td>

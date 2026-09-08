@@ -325,6 +325,58 @@ test("buildPurchasingBuckets uses a configurable percentage above safety stock f
   assert.equal(result.nearSafety[0]?.id, "1");
 });
 
+test("buildPurchasingBuckets recommends a range from safety stock to twice the safety level", () => {
+  const result = buildPurchasingBuckets([
+    {
+      id: "component-1",
+      name: "Relay 5V G6K",
+      category: "Relay",
+      producer: "Omron",
+      value: "5V",
+      safety_stock: 25,
+      quantity_available: 26,
+      purchase_price: 1.76,
+      lead_time: 2
+    }
+  ]);
+
+  assert.equal(result.nearSafety[0]?.recommended_order_min_quantity, 0);
+  assert.equal(result.nearSafety[0]?.recommended_order_max_quantity, 24);
+  assert.equal(result.nearSafety[0]?.recommended_order_quantity, 24);
+});
+
+test("buildPurchasingBuckets subtracts available stock from both recommendation limits", () => {
+  const result = buildPurchasingBuckets([
+    {
+      id: "component-1",
+      name: "Relay 5V G6K",
+      category: "Relay",
+      producer: "Omron",
+      value: "5V",
+      safety_stock: 50,
+      quantity_available: 20,
+      purchase_price: 1.76,
+      lead_time: 2
+    },
+    {
+      id: "component-2",
+      name: "Out of stock MCU",
+      category: "IC",
+      producer: "ST",
+      value: null,
+      safety_stock: 50,
+      quantity_available: 0,
+      purchase_price: 8.15,
+      lead_time: 4
+    }
+  ]);
+
+  assert.equal(result.nearSafety[0]?.recommended_order_min_quantity, 30);
+  assert.equal(result.nearSafety[0]?.recommended_order_max_quantity, 80);
+  assert.equal(result.outOfStock[0]?.recommended_order_min_quantity, 50);
+  assert.equal(result.outOfStock[0]?.recommended_order_max_quantity, 100);
+});
+
 test("buildProductionShortageMetrics clears current shortage when available inventory now covers the stored net need", () => {
   const metrics = buildProductionShortageMetrics({
     totalGrossRequirement: 40,
@@ -371,6 +423,8 @@ test("buildProductionShortageMetrics subtracts currently available stock from th
 
   assert.equal(metrics.netNeed, 84);
   assert.equal(metrics.recommendedOrderQuantity, 124);
+  assert.equal(metrics.recommendedOrderMinQuantity, 124);
+  assert.equal(metrics.recommendedOrderMaxQuantity, 164);
 });
 
 test("calculateProductionLongestLeadTime ignores covered rows", () => {

@@ -26,7 +26,8 @@ export async function GET() {
       available_inventory: item.quantity_available,
       safety_stock: item.safety_stock,
       net_need: item.net_need,
-      recommended_order: item.recommended_order_quantity,
+      recommended_order_min: item.recommended_order_min_quantity ?? item.recommended_order_quantity,
+      recommended_order_max: item.recommended_order_max_quantity ?? item.recommended_order_quantity,
       lead_time: item.lead_time,
       seller_name: item.seller_name ?? "",
       seller_url: item.seller_product_url ?? item.seller_base_url ?? ""

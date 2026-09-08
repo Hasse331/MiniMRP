@@ -10,11 +10,7 @@ test("settings page exposes a near-safety threshold percent field", () => {
   assert.equal(source.includes("percent above safety stock"), true);
 });
 
-test("settings actions persist the near-safety threshold percent for both runtimes", () => {
+test("SQLite settings actions persist the near-safety threshold percent", () => {
   const sqliteSource = fs.readFileSync("lib/runtime/sqlite/actions.ts", "utf8");
-  const supabaseSource = fs.readFileSync("lib/supabase/actions/settings.ts", "utf8");
-
-  for (const source of [sqliteSource, supabaseSource]) {
-    assert.equal(source.includes("near_safety_threshold_percent"), true);
-  }
+  assert.equal(sqliteSource.includes("near_safety_threshold_percent"), true);
 });

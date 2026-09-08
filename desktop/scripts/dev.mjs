@@ -11,7 +11,7 @@ if (port !== preferredPort) {
 
 const nextProcess = spawnProcess(
   process.platform === "win32" ? "npm.cmd" : "npm",
-  ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(port)],
+  ["run", "dev:next", "--", "--hostname", "127.0.0.1", "--port", String(port)],
   {
     MINIMRP_DESKTOP_RUNTIME: "1",
     MINIMRP_RUNTIME: "sqlite",

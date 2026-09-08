@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { resolveAdminAccessFailure } from "../auth/admin-access.ts";
-import { getRuntimeMode } from "./env.ts";
 
 type RuntimeAdminFlags = {
   isAuthenticated: boolean;
@@ -9,13 +8,7 @@ type RuntimeAdminFlags = {
 };
 
 async function getRuntimeAuthModule() {
-  const runtimeMode = getRuntimeMode();
-
-  if (runtimeMode === "sqlite") {
-    return import("./sqlite/auth.ts");
-  }
-
-  return import("./supabase/auth.ts");
+  return import("./sqlite/auth.ts");
 }
 
 export async function getRuntimeAdminFlags(): Promise<RuntimeAdminFlags> {
