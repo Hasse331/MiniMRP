@@ -53,6 +53,42 @@ test("getPurchasingOverview recalculates production shortage quantities against 
   assert.equal(item?.quantity_available, 10);
   assert.equal(item?.net_need, 30);
   assert.equal(item?.recommended_order_quantity, 55);
+  assert.equal(item?.recommended_order_min_quantity, 55);
+  assert.equal(item?.recommended_order_max_quantity, 80);
+});
+
+test("getPurchasingOverview combines repeated component shortages before adding safety stock", async () => {
+  const db = createDesktopDatabase(":memory:");
+  ensureSqliteSchema(db);
+  setDesktopDatabaseForTests(db);
+  db.exec(`
+    insert into products (id, name) values ('product-1', 'Atlas Mixer');
+    insert into product_versions (id, product_id, version_number) values ('version-1', 'product-1', 'Version A');
+    insert into components (id, sku, name, category, producer, value, safety_stock)
+    values ('component-1', 'IC-OPA2134', 'OPA2134 Op Amp', 'IC', 'Texas Instruments', 'OPA2134', 25);
+    insert into inventory (id, component_id, quantity_available, purchase_price)
+    values ('inventory-1', 'component-1', 10, 2.78);
+    insert into production_entries (id, version_id, quantity, status, completed_at, created_at)
+    values
+      ('entry-1', 'version-1', 5, 'under_production', null, '2026-05-20T10:00:00.000Z'),
+      ('entry-2', 'version-1', 5, 'under_production', null, '2026-05-21T10:00:00.000Z');
+    insert into production_requirements (id, production_entry_id, component_id, gross_requirement, inventory_consumed, net_requirement, inventory_consumed_cost, created_at)
+    values
+      ('requirement-1', 'entry-1', 'component-1', 40, 0, 40, 0, '2026-05-20T10:00:00.000Z'),
+      ('requirement-2', 'entry-2', 'component-1', 40, 0, 40, 0, '2026-05-21T10:00:00.000Z');
+  `);
+
+  const overview = await getPurchasingOverview();
+  const items = overview.productionShortages.flatMap((group) => group.items);
+
+  assert.equal(items.reduce((total, item) => total + item.net_need, 0), 70);
+  assert.deepEqual(
+    items.map((item) => [
+      item.recommended_order_min_quantity,
+      item.recommended_order_max_quantity
+    ]),
+    [[95, 120], [95, 120]]
+  );
 });
 
 test("getPurchasingOverview does not duplicate a production shortage in out of stock", async () => {

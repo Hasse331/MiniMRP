@@ -8,7 +8,7 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
   return (
     <Panel
       title="Production shortages"
-      description="Shortages grouped by active production entry. Net need is the missing quantity for that specific build."
+      description="Shortages grouped by active production entry. Net need is entry-specific; recommended order combines the component's need across all active entries."
     >
       {props.shortages.length === 0 ? (
         <EmptyState>No production shortages.</EmptyState>
@@ -41,8 +41,9 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                       <th>
                         Recommended order
                         <InfoTooltip label="How the production shortage recommendation is calculated">
-                          Remaining production shortage plus one safety stock
-                          quantity.
+                          Combined Net need across all active production entries,
+                          plus one safety stock for the minimum or two safety
+                          stocks for the maximum.
                         </InfoTooltip>
                       </th>
                       <th>Lead time</th>
@@ -67,7 +68,10 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                         <td>{item.quantity_available}</td>
                         <td>{item.net_need}</td>
                         <td>{item.safety_stock}</td>
-                        <td>{item.recommended_order_quantity}</td>
+                        <td>
+                          {item.recommended_order_min_quantity ?? item.recommended_order_quantity}–{item.recommended_order_max_quantity ?? item.recommended_order_quantity}
+                          <div className="small muted">Combined</div>
+                        </td>
                         <td>{item.lead_time ?? "-"}</td>
                         <td>
                           {normalizeExternalUrl(item.seller_product_url ?? item.seller_base_url) ? (

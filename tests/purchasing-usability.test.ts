@@ -33,4 +33,10 @@ test("purchasing tables explain and display their recommended orders", () => {
     assert.match(source, /recommended_order_min_quantity/);
     assert.match(source, /recommended_order_max_quantity/);
   }
+
+  assert.match(sources[0], /recommended_order_min_quantity/);
+  assert.match(sources[0], /recommended_order_max_quantity/);
+  const exportSource = fs.readFileSync("app/api/export/purchasing/route.ts", "utf8");
+  assert.match(exportSource, /recommended_order_min/);
+  assert.match(exportSource, /recommended_order_max/);
 });

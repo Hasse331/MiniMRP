@@ -423,6 +423,8 @@ test("buildProductionShortageMetrics subtracts currently available stock from th
 
   assert.equal(metrics.netNeed, 84);
   assert.equal(metrics.recommendedOrderQuantity, 124);
+  assert.equal(metrics.recommendedOrderMinQuantity, 124);
+  assert.equal(metrics.recommendedOrderMaxQuantity, 164);
 });
 
 test("calculateProductionLongestLeadTime ignores covered rows", () => {
