@@ -9,6 +9,7 @@ test("app shell clearly identifies the shared temporary live demo", () => {
   assert.match(shell, /LIVE DEMO/);
   assert.match(shell, /All visitors share the same demo data\./);
   assert.match(shell, /Do not enter real or sensitive\s+information\./);
+  assert.match(shell, /MiniMRP is optimized for desktop use only\./);
   assert.match(styles, /\.live-demo-banner/);
 });
 

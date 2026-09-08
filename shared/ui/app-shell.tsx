@@ -50,7 +50,7 @@ export function AppShell({
           <span>
             All visitors share the same demo data. Changes are temporary and
             the demo resets periodically. Do not enter real or sensitive
-            information.
+            information. MiniMRP is optimized for desktop use only.
           </span>
         </div>
         {children}
