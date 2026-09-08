@@ -18,12 +18,19 @@ test("production shortages present reserved, available, then net need", () => {
   assert.equal(reservedValue < availableValue && availableValue < netNeedValue, true);
 });
 
-test("near-safety table displays the calculated recommended order", () => {
-  const source = fs.readFileSync(
-    "features/purchasing/components/near-safety-panel.tsx",
-    "utf8"
-  );
+test("purchasing tables explain and display their recommended orders", () => {
+  const sources = [
+    fs.readFileSync("features/purchasing/components/current-shortages-panel.tsx", "utf8"),
+    fs.readFileSync("features/purchasing/components/near-safety-panel.tsx", "utf8"),
+    fs.readFileSync("features/purchasing/components/out-of-stock-panel.tsx", "utf8")
+  ];
 
-  assert.match(source, /<th>Recommended order<\/th>/);
-  assert.match(source, /item\.recommended_order_quantity/);
+  for (const source of sources) {
+    assert.match(source, /Recommended order[^<]*<InfoTooltip/s);
+  }
+
+  for (const source of sources.slice(1)) {
+    assert.match(source, /recommended_order_min_quantity/);
+    assert.match(source, /recommended_order_max_quantity/);
+  }
 });

@@ -2,7 +2,7 @@ import type { ProductionShortageGroup } from "@/lib/types/domain";
 import Link from "next/link";
 import { normalizeExternalUrl } from "@/lib/mappers/urls";
 import { upsertPartSellerLinkAction } from "@/lib/runtime/actions";
-import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
+import { EmptyState, InfoTooltip, ModalTrigger, Panel } from "@/shared/ui";
 
 export function CurrentShortagesPanel(props: { shortages: ProductionShortageGroup[] }) {
   return (
@@ -38,7 +38,13 @@ export function CurrentShortagesPanel(props: { shortages: ProductionShortageGrou
                       <th>Available</th>
                       <th>Net need</th>
                       <th>Safety stock</th>
-                      <th>Recommended order</th>
+                      <th>
+                        Recommended order
+                        <InfoTooltip label="How the production shortage recommendation is calculated">
+                          Remaining production shortage plus one safety stock
+                          quantity.
+                        </InfoTooltip>
+                      </th>
                       <th>Lead time</th>
                       <th>Seller</th>
                       <th>Action</th>

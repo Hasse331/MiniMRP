@@ -158,6 +158,8 @@ export interface PurchasingItem extends ComponentMaster {
   seller_base_url?: string | null;
   seller_product_url?: string | null;
   recommended_order_quantity: number;
+  recommended_order_min_quantity?: number;
+  recommended_order_max_quantity?: number;
 }
 
 export interface ProductionShortageItem extends PurchasingItem {

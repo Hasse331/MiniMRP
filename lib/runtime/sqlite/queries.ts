@@ -619,17 +619,17 @@ export async function getPurchasingOverview(): Promise<{
     );
 
     const nearSafety: PurchasingItem[] = buckets.nearSafety
+      .filter((item) => !productionShortageIds.has(item.id))
       .map((component) => ({
         ...component,
         gross_requirement: 0,
         reserved_inventory: 0,
-        net_need: 0,
-        recommended_order_quantity: 0
+        net_need: 0
       }))
-      .filter((item) => !productionShortageIds.has(item.id))
       .sort((left, right) => left.quantity_available - right.quantity_available);
 
     const outOfStock: PurchasingItem[] = buckets.outOfStock
+      .filter((item) => !productionShortageIds.has(item.id))
       .map((component) => ({
         ...component,
         gross_requirement: 0,

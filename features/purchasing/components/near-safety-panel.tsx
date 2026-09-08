@@ -2,7 +2,7 @@ import type { PurchasingItem } from "@/lib/types/domain";
 import Link from "next/link";
 import { normalizeExternalUrl } from "@/lib/mappers/urls";
 import { updatePartSafetyStockAction, upsertPartSellerLinkAction } from "@/lib/runtime/actions";
-import { EmptyState, ModalTrigger, Panel } from "@/shared/ui";
+import { EmptyState, InfoTooltip, ModalTrigger, Panel } from "@/shared/ui";
 
 export function NearSafetyPanel(props: { items: PurchasingItem[] }) {
   return (
@@ -21,7 +21,14 @@ export function NearSafetyPanel(props: { items: PurchasingItem[] }) {
                 <th>Category</th>
                 <th>Available</th>
                 <th>Safety stock</th>
-                <th>Recommended order</th>
+                <th>
+                  Recommended order
+                  <InfoTooltip label="How the recommended order range is calculated">
+                    Minimum restores stock to safety stock. Maximum restores
+                    stock to twice the safety stock. Available stock is
+                    subtracted from both limits.
+                  </InfoTooltip>
+                </th>
                 <th>Lead time</th>
                 <th>Seller</th>
                 <th>Actions</th>
@@ -41,7 +48,9 @@ export function NearSafetyPanel(props: { items: PurchasingItem[] }) {
                   <td>{item.category}</td>
                   <td>{item.quantity_available}</td>
                   <td>{item.safety_stock}</td>
-                  <td>{item.recommended_order_quantity}</td>
+                  <td>
+                    {item.recommended_order_min_quantity ?? 0}–{item.recommended_order_max_quantity ?? item.recommended_order_quantity}
+                  </td>
                   <td>{item.lead_time ?? "-"}</td>
                   <td>
                     {normalizeExternalUrl(item.seller_product_url ?? item.seller_base_url) ? (

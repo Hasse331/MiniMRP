@@ -54,3 +54,31 @@ test("getPurchasingOverview recalculates production shortage quantities against 
   assert.equal(item?.net_need, 30);
   assert.equal(item?.recommended_order_quantity, 55);
 });
+
+test("getPurchasingOverview does not duplicate a production shortage in out of stock", async () => {
+  seedShortageScenario({ quantityAvailable: 0, storedNetRequirement: 40, safetyStock: 25 });
+
+  const overview = await getPurchasingOverview();
+
+  assert.equal(overview.productionShortages.length, 1);
+  assert.equal(overview.outOfStock.some((item) => item.id === "component-1"), false);
+});
+
+test("getPurchasingOverview preserves near-safety recommendation ranges", async () => {
+  const db = createDesktopDatabase(":memory:");
+  ensureSqliteSchema(db);
+  setDesktopDatabaseForTests(db);
+  db.exec(`
+    update app_settings set near_safety_threshold_percent = 100 where id = 1;
+    insert into components (id, sku, name, category, producer, value, safety_stock)
+    values ('component-near', 'CAP-NEAR', 'Near capacitor', 'Capacitor', 'Murata', '10uF', 50);
+    insert into inventory (id, component_id, quantity_available, purchase_price)
+    values ('inventory-near', 'component-near', 20, 0.2);
+  `);
+
+  const overview = await getPurchasingOverview();
+  const item = overview.nearSafety.find((candidate) => candidate.id === "component-near");
+
+  assert.equal(item?.recommended_order_min_quantity, 30);
+  assert.equal(item?.recommended_order_max_quantity, 80);
+});
