@@ -1,6 +1,9 @@
 # MiniElectronicsMRP
 
-MiniMRP is a small internal MRP (material requirements planning) system for small businesses specializing electronic products. It is designed to manage products, versions, BOMs, components, inventory, production entries, and purchasing needs without the overhead of a full ERP system.
+MiniMRP is a small internal MRP (material requirements planning) system for small businesses specializing in electronic products. It is designed to manage products, versions, BOMs, components, inventory, production entries, and purchasing needs without the overhead of a full ERP system.
+
+> [!WARNING]
+> MiniMRP is optimized for desktop use only. Mobile and small-screen layouts are not officially supported.
 
 ## Status Note
 
@@ -67,7 +70,7 @@ The explicit equivalent is `npm run dev:web`. Neither command builds or opens El
 
 4. Open the URL printed by the command, normally `http://localhost:3000`.
 
-windows desktop:
+Windows desktop:
 
 ```bash
 npm run dev:desktop
