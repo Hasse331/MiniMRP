@@ -11,6 +11,10 @@ test("shared info tooltip exposes help to pointer and keyboard users", () => {
   assert.match(component, /role="tooltip"/);
   assert.match(styles, /\.info-tooltip:hover/);
   assert.match(styles, /\.info-tooltip:focus/);
+  assert.match(
+    styles,
+    /\.table-wrap \.info-tooltip-content\s*\{[^}]*top:\s*calc\(100% \+ 8px\);[^}]*bottom:\s*auto;/s
+  );
 });
 
 test("MRP reservation headers show visible info controls", () => {

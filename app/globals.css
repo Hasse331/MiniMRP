@@ -562,6 +562,11 @@ th {
   white-space: normal;
 }
 
+.table-wrap .info-tooltip-content {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
 .info-tooltip:hover .info-tooltip-content,
 .info-tooltip:focus .info-tooltip-content,
 .info-tooltip:focus-visible .info-tooltip-content {
